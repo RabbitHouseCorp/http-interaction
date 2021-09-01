@@ -1,5 +1,5 @@
 ## Post Interaction
-A small code for receiving Discord interactions, prepared for libraries that receive via WebSocket. Eai curious to work with this cute little code?
+A small code for receiving Discord interactions, prepared for libraries that receive via WebSocket. What's up? curious to work with this cute little code?
 
 ## Download
 You can make a **git clone** or directly download **Code** > **Download Zip** and then unzip the file and do the process down here.
