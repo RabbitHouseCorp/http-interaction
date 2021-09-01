@@ -1,0 +1,18 @@
+interaction:
+  # You need to purchase a public key from the Discord developer portal
+  # Well, you can add multiple keys... For example... if you are managing 2 bots.
+  publicKey: []
+server:
+  # Configure a suitable port to open.
+  # Default is 2000
+  port: 2000
+  debug_server: false # Track logs
+  debug_server_hard: false # Track logs and metadata
+  log_connection_ws: false # Log connections and events via WebSocket
+ws:
+  # If you want to receive interactions locally, put it in "True", if not you put "False".
+  # If I put it in "True", what happens?
+  # Basically the connection will be closed,
+  # If you try to access for example https://127.0.0.1 publicly off the machine.
+  local: true
+  secret: 'Add a password to connect to the websocket!'
