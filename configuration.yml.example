@@ -1,6 +1,6 @@
 interaction:
   # You add the public key in array
-  # Well, you can add multiple keys... For example... if you are managing 2 bots.
+  # Well, you can add multiple keys... For example, if you are managing 2 bots receive interactions from two bots
   publicKey: []
 server:
   # Configure a suitable port to open.
