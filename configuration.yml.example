@@ -1,5 +1,5 @@
 interaction:
-  # You need to purchase a public key from the Discord developer portal
+  # You add the public key in array
   # Well, you can add multiple keys... For example... if you are managing 2 bots.
   publicKey: []
 server:

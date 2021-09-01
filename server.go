@@ -92,14 +92,11 @@ func main() {
 				break
 			}
 			if mt == -1 {
-				DeleteByID(data.BotID)
 				return
 			}
-			getBot := bots[data.BotID]
 
-			if getBot.BotID == "" {
-				Add(data, c)
-			}
+			Add(data, c)
+
 			c.WriteJSON(data)
 			if configuration.Server.LogConnectionWs {
 				if err = c.WriteMessage(mt, msg); err != nil {
@@ -166,7 +163,10 @@ func main() {
 				if getSession.BotID != "" {
 					if getSession.PublicKey != b {
 						if getSession.BotID == checkApplication.ApplicationID {
-							getSession.Session.WriteMessage(websocket.BinaryMessage, c.Body())
+							if c.Body() != nil {
+								c.Body()
+								getSession.Session.WriteMessage(websocket.TextMessage, c.Body())
+							}
 						}
 					}
 				}
@@ -183,23 +183,20 @@ func main() {
 	server.Listen(":2000")
 }
 
-func Delete(Bot AccountsService.TypeConnectionSaved) {
-	Bot.Session.Conn.WriteJSON(CloseConnection{
-		Type:    0,
-		Message: "The session has been deleted and so you have been disconnected!",
-	})
+func UpdateConnection(Bot AccountsService.TypeConnectionSaved, c *websocket.Conn) {
+	bots[Bot.BotID] = AccountsService.TypeConnectionSaved{
+		BotID:   Bot.BotID,
+		BotName: Bot.BotName,
+		Date:    Bot.Date,
 
-	delete(bots, Bot.BotID)
+		Session: c,
+	}
+}
+
+func Delete(Bot AccountsService.TypeConnectionSaved) {
 }
 
 func DeleteByID(id string) {
-	Bot := bots[id]
-	Bot.Session.Conn.WriteJSON(CloseConnection{
-		Type:    0,
-		Message: "The session has been deleted and so you have been disconnected!",
-	})
-
-	delete(bots, Bot.BotID)
 }
 
 func IsValid(c *websocket.Conn) bool {
@@ -226,8 +223,9 @@ func Add(Bot AccountsService.TypeConnection, c *websocket.Conn) AccountsService.
 		BotName: Bot.BotName,
 		Date:    Bot.Date,
 
-		Session: *c,
+		Session: c,
 	}
+
 	return bots[Bot.BotID]
 }
 

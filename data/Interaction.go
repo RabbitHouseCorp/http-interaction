@@ -20,5 +20,5 @@ type TypeConnectionSaved struct {
 	BotID     string `json:"bot_id"`
 	BotName   string `json:"bot_name"`
 	Date      int    `json:"date"`
-	Session   websocket.Conn
+	Session   *websocket.Conn
 }
