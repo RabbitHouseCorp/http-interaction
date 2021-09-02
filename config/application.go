@@ -9,7 +9,10 @@ import (
 
 type Configuration struct {
 	Interaction struct {
-		PublicKey []string `yaml:"publicKey"`
+		PublicKey    []string `yaml:"publicKey"`
+		SlashCommand struct {
+			RespondingInteractionLate bool `yaml:"responding_interaction_late"`
+		} `yaml:"slash_command"`
 	} `yaml:"interaction"`
 	Server struct {
 		Port            int  `yaml:"port"`

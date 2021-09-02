@@ -6,6 +6,7 @@ import (
 
 type InteractionApplication struct {
 	ApplicationID string `json:"application_id"`
+	Type          int    `json:"type"`
 }
 
 type TypeConnection struct {
@@ -16,9 +17,9 @@ type TypeConnection struct {
 }
 
 type TypeConnectionSaved struct {
-	PublicKey string `json:"public_key"`
-	BotID     string `json:"bot_id"`
-	BotName   string `json:"bot_name"`
-	Date      int    `json:"date"`
-	Session   *websocket.Conn
+	PublicKey string          `json:"public_key"`
+	BotID     string          `json:"bot_id"`
+	BotName   string          `json:"bot_name"`
+	Date      int             `json:"date"`
+	Session   *websocket.Conn `json:"session"`
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-
 	color "github.com/fatih/color"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -54,6 +53,7 @@ func main() {
 		if configuration.WS.Local == true {
 			if !(regexp.MustCompile(`\:.(.*)`).ReplaceAllString(c.Conn.LocalAddr().String(), "") == "127.0.0.1") && !(regexp.MustCompile(`\:.(.*)`).ReplaceAllString(c.Conn.LocalAddr().String(), "") == "localhost") {
 				c.Close()
+		
 				return
 			}
 		}
@@ -66,6 +66,7 @@ func main() {
 		for {
 			if mt, msg, err = c.ReadMessage(); err != nil {
 				log.Println("read:", err)
+				DeleteConnectionSocket(c)
 				break
 			}
 			var data AccountsService.TypeConnection
@@ -95,7 +96,13 @@ func main() {
 				return
 			}
 
-			Add(data, c)
+			botConnection := bots[data.BotID]
+			
+			if botConnection.Session != nil {
+				UpdateConnection(botConnection, c)
+			} else {
+				Add(data, c)
+			}
 
 			c.WriteJSON(data)
 			if configuration.Server.LogConnectionWs {
@@ -165,9 +172,20 @@ func main() {
 						if getSession.BotID == checkApplication.ApplicationID {
 							if c.Body() != nil {
 								c.Body()
-								getSession.Session.WriteMessage(websocket.TextMessage, c.Body())
+								if getSession.Session != nil {
+									getSession.Session.WriteMessage(websocket.TextMessage, []byte("129"+ string(c.Body())))
+								}
 							}
 						}
+					}
+				}
+
+				// Slash Command
+				if configuration.Interaction.SlashCommand.RespondingInteractionLate {
+					if checkApplication.Type == 2 {
+						return c.Status(200).JSON(&fiber.Map{
+							"type": 5,
+						})
 					}
 				}
 
@@ -183,6 +201,13 @@ func main() {
 	server.Listen(":2000")
 }
 
+func DeleteConnectionSocket(c *websocket.Conn) {
+	for a, b := range bots {
+		if c.Conn.LocalAddr() == b.Session.LocalAddr() {
+			delete(bots, a)
+		}
+	}
+}
 func UpdateConnection(Bot AccountsService.TypeConnectionSaved, c *websocket.Conn) {
 	bots[Bot.BotID] = AccountsService.TypeConnectionSaved{
 		BotID:   Bot.BotID,
