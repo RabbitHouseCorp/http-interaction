@@ -7,6 +7,7 @@ import (
 type InteractionApplication struct {
 	ApplicationID string `json:"application_id"`
 	Type          int    `json:"type"`
+	ID            string `json:"id"`
 }
 
 type TypeConnection struct {
@@ -22,4 +23,10 @@ type TypeConnectionSaved struct {
 	BotName   string          `json:"bot_name"`
 	Date      int             `json:"date"`
 	Session   *websocket.Conn `json:"session"`
+}
+
+type IPacket struct {
+	ID       string      `json:"id"`
+	Type     int         `json:"type"`
+	Metadata interface{} `json:"data"`
 }
