@@ -22,4 +22,4 @@ In the Discord application portal you will need to put `http://ip:port/interacti
 
 
 ## Libraries:
-- Javascript
+**[Javascript](https://github.com/NavyCake/post-interaction-js)**

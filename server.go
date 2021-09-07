@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
+
 	color "github.com/fatih/color"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -21,6 +23,8 @@ type CloseConnection struct {
 }
 
 var bots = make(map[string]AccountsService.TypeConnectionSaved)
+
+var interactionInterface = make(map[string]AccountsService.IPacket)
 
 func main() {
 	color.Cyan("Post Interaction - V1")
@@ -53,7 +57,7 @@ func main() {
 		if configuration.WS.Local == true {
 			if !(regexp.MustCompile(`\:.(.*)`).ReplaceAllString(c.Conn.LocalAddr().String(), "") == "127.0.0.1") && !(regexp.MustCompile(`\:.(.*)`).ReplaceAllString(c.Conn.LocalAddr().String(), "") == "localhost") {
 				c.Close()
-		
+
 				return
 			}
 		}
@@ -69,47 +73,61 @@ func main() {
 				DeleteConnectionSocket(c)
 				break
 			}
-			var data AccountsService.TypeConnection
-			err := json.Unmarshal(msg, &data)
-			if err != nil {
-				fmt.Println(err)
-				c.Close()
-				break
-			}
-			if data.BotID == "" {
-				c.Close()
-				break
-			}
-			if data.PublicKey == "" {
-				c.Close()
-				break
-			}
-			if data.BotName == "" {
-				c.Close()
-				break
-			}
-			if data.Date == 0 {
-				c.Close()
-				break
-			}
-			if mt == -1 {
-				return
-			}
 
-			botConnection := bots[data.BotID]
-			
-			if botConnection.Session != nil {
-				UpdateConnection(botConnection, c)
-			} else {
-				Add(data, c)
-			}
+			if !GetBot(c) {
 
-			c.WriteJSON(data)
-			if configuration.Server.LogConnectionWs {
-				if err = c.WriteMessage(mt, msg); err != nil {
-					log.Println("write:", err)
+				var data AccountsService.TypeConnection
+				err := json.Unmarshal(msg, &data)
+				if err != nil {
+					fmt.Println(err)
+					c.Close()
 					break
 				}
+				if data.BotID == "" {
+					c.Close()
+					break
+				}
+				if data.PublicKey == "" {
+					c.Close()
+					break
+				}
+				if data.BotName == "" {
+					c.Close()
+					break
+				}
+				if data.Date == 0 {
+					c.Close()
+					break
+				}
+				if mt == -1 {
+					return
+				}
+
+				botConnection := bots[data.BotID]
+
+				if botConnection.Session != nil {
+					UpdateConnection(botConnection, c)
+				} else {
+					Add(data, c)
+				}
+
+				c.WriteJSON(data)
+			} else {
+
+				var data AccountsService.IPacket
+				err := json.Unmarshal(msg, &data)
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+				if data.Type == 3 {
+					AddInteraction(AccountsService.IPacket{
+						ID:       data.ID,
+						Type:     data.Type,
+						Metadata: data.Metadata,
+					})
+				}
+
 			}
 
 		}
@@ -171,9 +189,8 @@ func main() {
 					if getSession.PublicKey != b {
 						if getSession.BotID == checkApplication.ApplicationID {
 							if c.Body() != nil {
-								c.Body()
 								if getSession.Session != nil {
-									getSession.Session.WriteMessage(websocket.TextMessage, []byte("129"+ string(c.Body())))
+									go MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
 								}
 							}
 						}
@@ -186,6 +203,15 @@ func main() {
 						return c.Status(200).JSON(&fiber.Map{
 							"type": 5,
 						})
+					}
+					if checkApplication.Type == 3 {
+						time.Sleep(110 * time.Millisecond)
+						if GetInteraction(checkApplication.ID) == nil {
+							return c.Status(200).JSON(fiber.Map{})
+						}
+					
+						defer c.Status(200).JSON(GetInteraction(checkApplication.ID).Metadata)
+						delete(interactionInterface, checkApplication.ID)
 					}
 				}
 
@@ -208,6 +234,7 @@ func DeleteConnectionSocket(c *websocket.Conn) {
 		}
 	}
 }
+
 func UpdateConnection(Bot AccountsService.TypeConnectionSaved, c *websocket.Conn) {
 	bots[Bot.BotID] = AccountsService.TypeConnectionSaved{
 		BotID:   Bot.BotID,
@@ -215,6 +242,16 @@ func UpdateConnection(Bot AccountsService.TypeConnectionSaved, c *websocket.Conn
 		Date:    Bot.Date,
 
 		Session: c,
+	}
+}
+
+func UpdateConnectionSocket(c *websocket.Conn) {
+	for a, b := range bots {
+		if c.Conn.LocalAddr() == b.Session.LocalAddr() {
+			bot := bots[a]
+			bot.Session = c
+			bots[a] = bot
+		}
 	}
 }
 
@@ -252,6 +289,43 @@ func Add(Bot AccountsService.TypeConnection, c *websocket.Conn) AccountsService.
 	}
 
 	return bots[Bot.BotID]
+}
+
+
+func MessageBucket(message []byte, ws websocket.Conn) {
+	time.Sleep(90 * time.Millisecond)
+	ws.WriteMessage(websocket.BinaryMessage, message)
+}
+
+func GetBot(c *websocket.Conn) bool {
+	for _, b := range bots {
+		if c.Conn.LocalAddr() == b.Session.LocalAddr() {
+			return true
+		}
+	}
+	return false
+}
+
+func AddInteraction(Interaction AccountsService.IPacket) {
+	interactionInterface[Interaction.ID] = AccountsService.IPacket{
+		ID:       Interaction.ID,
+		Type:     Interaction.Type,
+		Metadata: Interaction.Metadata,
+	}
+}
+
+func GetInteraction(id string) *AccountsService.IPacket {
+	for _, b := range interactionInterface {
+		if id != b.ID {
+	
+			return &b
+		}
+	}
+	return nil
+}
+
+func RemoveInteraction(Interaction AccountsService.IPacket) {
+	delete(interactionInterface, Interaction.ID)
 }
 
 func SizeItemString(items []string) (int, string) {
