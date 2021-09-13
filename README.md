@@ -1,3 +1,7 @@
+# Aviso
+Este projeto vai ser privado durante minha inatividade e não vou ter certeza se isso vai virar open-source futuramente. É isso :^).
+
+
 ## Post Interaction
 A small code for receiving Discord interactions, prepared for libraries that receive via WebSocket. What's up? curious to work with this cute little code?
 
