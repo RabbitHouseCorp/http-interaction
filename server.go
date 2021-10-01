@@ -24,7 +24,10 @@ type CloseConnection struct {
 
 var bots = make(map[string]AccountsService.TypeConnectionSaved)
 
-var interactionInterface = make(map[string]AccountsService.IPacket)
+var (
+	interactionInterface = make(map[string]AccountsService.IPacket)
+	tokenInteractionMap  = make(map[string]AccountsService.TokenInteractionData)
+)
 
 func main() {
 	color.Cyan("Post Interaction - V1")
@@ -74,7 +77,7 @@ func main() {
 				break
 			}
 
-			if !GetBot(c) {
+			if GetBot(c) == false {
 
 				var data AccountsService.TypeConnection
 				err := json.Unmarshal(msg, &data)
@@ -128,22 +131,35 @@ func main() {
 					})
 				}
 
+				if data.Type == 89 {
+					c.WriteJSON(&fiber.Map{
+						"type_ws": 1001,
+						"ping":    true,
+					})
+				}
+
+				if data.Type == 90 {
+					c.WriteJSON(&fiber.Map{
+						"type_ws": 1002,
+						"pong":    true,
+					})
+				}
+
+				if data.Type == 95 {
+					AddToken(AccountsService.TokenInteractionData{
+						TokenInteraction: data.TokenInteraction,
+						Content:          data.Content,
+						PingPong:         data.PingPong,
+					})
+				}
+
 			}
 
 		}
 	}))
-	server.Use(func(c *fiber.Ctx) error {
-		if string(c.Context().Path()) != "/interaction" {
-			return c.Context().Conn().Close() // Refuse this random endpoint.
-		} else {
-			if string(c.Context().Method()) == "POST" {
-				return c.Next() // OK!
-			} else {
-				return c.Context().Conn().Close() // Refuse this random endpoint.
-			}
-		}
-	})
+
 	a, _ := SizeItemString(configuration.Interaction.PublicKey)
+
 	server.Post("/interaction", func(c *fiber.Ctx) error {
 		if a == 0 {
 			// There is no public key! Check configuration.yaml pls
@@ -151,13 +167,16 @@ func main() {
 			return nil
 		}
 		// You can follow through the documentary how this encryption basically works.
+
 		signature := c.Get("X-Signature-Ed25519", "")   // Get this header
 		timestamp := c.Get("X-Signature-Timestamp", "") // Get this header
 		if signature == "" {
-			return c.Context().Conn().Close()
+			c.Status(403)
+			return nil
 		}
 		if timestamp == "" {
-			return c.Context().Conn().Close()
+			c.Status(403)
+			return nil
 		}
 		for _, b := range configuration.Interaction.PublicKey {
 			value, _ := hex.DecodeString(b) // Public key that you get from the Discord app portal
@@ -173,7 +192,7 @@ func main() {
 			}
 			verifySignature := ed25519.Verify(ed25519.PublicKey(value), data, signatureHex) // Let's check the encryption.
 
-			if verifySignature {
+			if !verifySignature {
 				// Hmm... that looks good. let's return the signal
 				var checkApplication AccountsService.InteractionApplication
 
@@ -185,36 +204,50 @@ func main() {
 				}
 				getSession := bots[checkApplication.ApplicationID]
 
-				if getSession.BotID != "" {
-					if getSession.PublicKey != b {
-						if getSession.BotID == checkApplication.ApplicationID {
-							if c.Body() != nil {
-								if getSession.Session != nil {
-									go MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
-								}
-							}
-						}
-					}
+				if getSession.BotID == "" {
+					return c.Status(200).JSON(&fiber.Map{
+						"type": 4,
+						"data": &fiber.Map{
+							"embeds": []fiber.Map{
+								0: {
+									"color":       "#ff1212",
+									"description": "Failed to communicate with an interaction.",
+								},
+							},
+						},
+					})
 				}
 
 				// Slash Command
-				if configuration.Interaction.SlashCommand.RespondingInteractionLate {
-					if checkApplication.Type == 2 {
+
+				if checkApplication.Type == 2 {
+					MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
+					time.Sleep(1*time.Second + 40*time.Millisecond) // 1.90 Second
+					if !CheckToken(checkApplication.Token) {
+						b := tokenInteractionMap[checkApplication.Token]
+						if b.PingPong {
+							return c.Status(200).JSON(&fiber.Map{
+								"type": 5,
+							})
+						}
+						return c.Status(200).JSON(tokenInteractionMap[checkApplication.Token].Content)
+					} else {
 						return c.Status(200).JSON(&fiber.Map{
 							"type": 5,
 						})
 					}
-					if checkApplication.Type == 3 {
-						time.Sleep(110 * time.Millisecond)
-						if GetInteraction(checkApplication.ID) == nil {
-							return c.Status(200).JSON(fiber.Map{})
-						}
-					
-						defer c.Status(200).JSON(GetInteraction(checkApplication.ID).Metadata)
-						delete(interactionInterface, checkApplication.ID)
+				}
+				if checkApplication.Type == 3 {
+					MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
+					time.Sleep(1*time.Second + 90*time.Millisecond) // 1.90 Second
+					if !CheckToken(checkApplication.Token) {
+						return c.Status(200).JSON(tokenInteractionMap[checkApplication.Token].Content)
+					} else {
+						return c.Status(200).JSON(&fiber.Map{
+							"type": 5,
+						})
 					}
 				}
-
 				return c.Status(200).JSON(&fiber.Map{
 					"type": 1,
 				})
@@ -224,7 +257,7 @@ func main() {
 		return c.Status(401).Send([]byte(`Invalid Request Signature`))
 	})
 
-	server.Listen(":2000")
+	log.Fatal(server.Listen(":2000"))
 }
 
 func DeleteConnectionSocket(c *websocket.Conn) {
@@ -291,9 +324,7 @@ func Add(Bot AccountsService.TypeConnection, c *websocket.Conn) AccountsService.
 	return bots[Bot.BotID]
 }
 
-
 func MessageBucket(message []byte, ws websocket.Conn) {
-	time.Sleep(90 * time.Millisecond)
 	ws.WriteMessage(websocket.BinaryMessage, message)
 }
 
@@ -304,6 +335,18 @@ func GetBot(c *websocket.Conn) bool {
 		}
 	}
 	return false
+}
+
+func AddToken(InteractionData AccountsService.TokenInteractionData) {
+	tokenInteractionMap[InteractionData.TokenInteraction] = InteractionData
+}
+
+func CheckToken(Token string) bool {
+	if tokenInteractionMap[Token].TokenInteraction != "" {
+		return false
+	} else {
+		return true
+	}
 }
 
 func AddInteraction(Interaction AccountsService.IPacket) {
@@ -317,7 +360,6 @@ func AddInteraction(Interaction AccountsService.IPacket) {
 func GetInteraction(id string) *AccountsService.IPacket {
 	for _, b := range interactionInterface {
 		if id != b.ID {
-	
 			return &b
 		}
 	}

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postinteraction
+spec:
+  selector:
+    matchLabels:
+      app: postinteraction
+  template:
+    metadata:
+      labels:
+        app: postinteraction
+    spec:
+      containers:
+        - name: postinteraction
+          # imagePullPolicy: Never
+          image: "#your-image"
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 2001 # Your port
