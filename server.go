@@ -144,7 +144,6 @@ func main() {
 						"pong":    true,
 					})
 				}
-
 				if data.Type == 95 {
 					AddToken(AccountsService.TokenInteractionData{
 						TokenInteraction: data.TokenInteraction,
@@ -178,6 +177,7 @@ func main() {
 			c.Status(403)
 			return nil
 		}
+		
 		for _, b := range configuration.Interaction.PublicKey {
 			value, _ := hex.DecodeString(b) // Public key that you get from the Discord app portal
 
@@ -192,7 +192,7 @@ func main() {
 			}
 			verifySignature := ed25519.Verify(ed25519.PublicKey(value), data, signatureHex) // Let's check the encryption.
 
-			if !verifySignature {
+			if verifySignature {
 				// Hmm... that looks good. let's return the signal
 				var checkApplication AccountsService.InteractionApplication
 
@@ -204,47 +204,43 @@ func main() {
 				}
 				getSession := bots[checkApplication.ApplicationID]
 
-				if getSession.BotID == "" {
-					return c.Status(200).JSON(&fiber.Map{
-						"type": 4,
-						"data": &fiber.Map{
-							"embeds": []fiber.Map{
-								0: {
-									"color":       "#ff1212",
-									"description": "Failed to communicate with an interaction.",
+				if !(checkApplication.Type == 1) {
+					if getSession.BotID == "" {
+						return c.Status(200).JSON(&fiber.Map{
+							"type": 4,
+							"data": &fiber.Map{
+								"tts":     false,
+								"content": "There was a problem with the interaction!",
+								"embeds": []fiber.Map{
+									0: {
+										"color":       "#ff1212",
+										"description": "Failed to communicate with an interaction.",
+									},
+								},
+								"allowed_mentions": &fiber.Map{
+									"parse": []fiber.Map{},
 								},
 							},
-						},
-					})
+						})
+					}
 				}
 
 				// Slash Command
 
 				if checkApplication.Type == 2 {
 					MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
-					time.Sleep(1*time.Second + 40*time.Millisecond) // 1.90 Second
-					if !CheckToken(checkApplication.Token) {
-						b := tokenInteractionMap[checkApplication.Token]
-						if b.PingPong {
-							return c.Status(200).JSON(&fiber.Map{
-								"type": 5,
-							})
-						}
-						return c.Status(200).JSON(tokenInteractionMap[checkApplication.Token].Content)
-					} else {
-						return c.Status(200).JSON(&fiber.Map{
-							"type": 5,
-						})
-					}
+					return c.Status(200).JSON(&fiber.Map{
+						"type": 5,
+					})
 				}
 				if checkApplication.Type == 3 {
 					MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
-					time.Sleep(1*time.Second + 90*time.Millisecond) // 1.90 Second
+					time.Sleep(450 * time.Millisecond) // 1.90 Second
 					if !CheckToken(checkApplication.Token) {
 						return c.Status(200).JSON(tokenInteractionMap[checkApplication.Token].Content)
 					} else {
 						return c.Status(200).JSON(&fiber.Map{
-							"type": 5,
+							"type": 1,
 						})
 					}
 				}
@@ -254,6 +250,7 @@ func main() {
 			}
 		}
 		// Wow! There's something wrong with this encryption!
+		fmt.Println("Invalid Request Signature")
 		return c.Status(401).Send([]byte(`Invalid Request Signature`))
 	})
 
