@@ -177,7 +177,7 @@ func main() {
 			c.Status(403)
 			return nil
 		}
-		
+
 		for _, b := range configuration.Interaction.PublicKey {
 			value, _ := hex.DecodeString(b) // Public key that you get from the Discord app portal
 
