@@ -1,3 +1,4 @@
+// Version 
 package main
 
 import (
@@ -8,7 +9,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
+	"sync"
 
 	color "github.com/fatih/color"
 	"github.com/gofiber/fiber/v2"
@@ -22,11 +23,14 @@ type CloseConnection struct {
 	Type    int    `json:"type"`
 }
 
+
 var bots = make(map[string]AccountsService.TypeConnectionSaved)
 
 var (
-	interactionInterface = make(map[string]AccountsService.IPacket)
-	tokenInteractionMap  = make(map[string]AccountsService.TokenInteractionData)
+	interactionInterface       = make(map[string]AccountsService.IPacket)
+	tokenInteractionMap        = make(map[string]AccountsService.TokenInteractionData)
+	tokenInteractionSync       = make(map[string]AccountsService.TokenInteractionDataSync)
+	tokenInteractionSyncQueued = make(map[string]string)
 )
 
 func main() {
@@ -38,6 +42,7 @@ func main() {
 		AppName:               "Post Interaction",
 		DisableStartupMessage: true,
 	})
+
 
 	server.Use("/ws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
@@ -145,11 +150,19 @@ func main() {
 					})
 				}
 				if data.Type == 95 {
+					await := tokenInteractionSync[data.TokenInteraction].Wg
 					AddToken(AccountsService.TokenInteractionData{
 						TokenInteraction: data.TokenInteraction,
 						Content:          data.Content,
 						PingPong:         data.PingPong,
 					})
+					if tokenInteractionSyncQueued[data.TokenInteraction] == "" {
+						if await != nil {
+							tokenInteractionSyncQueued[data.TokenInteraction] = "true"
+							await.Done()
+						}
+					}
+
 				}
 
 			}
@@ -229,13 +242,25 @@ func main() {
 
 				if checkApplication.Type == 2 {
 					MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
+
 					return c.Status(200).JSON(&fiber.Map{
 						"type": 5,
 					})
 				}
 				if checkApplication.Type == 3 {
-					MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
-					time.Sleep(450 * time.Millisecond) // 1.90 Second
+					var await sync.WaitGroup
+					if tokenInteractionSync[checkApplication.Token].TokenInteraction == "" {
+						AddTokenSync(AccountsService.TokenInteractionDataSync{
+							TokenInteraction: checkApplication.Token,
+							Wg:               &await,
+						})
+						await.Add(1)
+						MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
+						await.Wait()
+					} else {
+						MessageBucket([]byte("129"+string(c.Body())), *getSession.Session)
+					}
+
 					if !CheckToken(checkApplication.Token) {
 						return c.Status(200).JSON(tokenInteractionMap[checkApplication.Token].Content)
 					} else {
@@ -336,6 +361,10 @@ func GetBot(c *websocket.Conn) bool {
 
 func AddToken(InteractionData AccountsService.TokenInteractionData) {
 	tokenInteractionMap[InteractionData.TokenInteraction] = InteractionData
+}
+
+func AddTokenSync(InteractionData AccountsService.TokenInteractionDataSync) {
+	tokenInteractionSync[InteractionData.TokenInteraction] = InteractionData
 }
 
 func CheckToken(Token string) bool {
