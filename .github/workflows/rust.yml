@@ -28,6 +28,7 @@ jobs:
       - name: Build
         uses: actions-rs/cargo@v1
         with:
-          command: build  --tests 
+          command: build
+          args: --verbose --tests
       - name: Test
         run: cargo test  --verbose
