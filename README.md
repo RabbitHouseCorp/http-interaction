@@ -1,7 +1,3 @@
-# Aviso
-Este projeto vai ser privado durante minha inatividade e não vou ter certeza se isso vai virar open-source futuramente. É isso :^).
-
-
 ## Post Interaction
 A small code for receiving Discord interactions, prepared for libraries that receive via WebSocket. What's up? curious to work with this cute little code?
 
@@ -9,9 +5,9 @@ A small code for receiving Discord interactions, prepared for libraries that rec
 You can make a **git clone** or directly download **Code** > **Download Zip** and then unzip the file and do the process down here.
 
 ## How it works?
-- 1 - First you need to have Go Language installed on your machine before you can start us.
+- 1 - First you need to have Rust Language installed on your machine before you can start us.
 - 2 - Second, now we need to configure... Okay, how? Go to "`configuration.yaml.example`" and then rename it to `configuration.yml`. Now we can configure and then run the application
-- 3 - Third, we only need to run this command `go run server.go`
+- 3 - Third, we only need to run this command `cargo run `
 
 
 ### Only endpoint released
