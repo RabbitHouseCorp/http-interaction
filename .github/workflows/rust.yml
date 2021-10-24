@@ -22,10 +22,10 @@ jobs:
             components: rustfmt, clippy
 
       - name: Run cargo check
-        run: check  --verbose 
+        run: check
       - name: Build
         uses: actions-rs/cargo@v1
         with:
-          command: build
+          command: build  --verbose 
       - name: Test
         run: cargo test  --verbose
