@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-
 use super::connection_state::{ConnectionStateKraken};
+
 
 pub struct BotInteraction {
     connection_state: ConnectionStateKraken,
