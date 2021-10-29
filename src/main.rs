@@ -64,10 +64,12 @@ async fn main() {
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
         .map(|sign: String, timestamp: String, mut json: Value| {
-            match sign::sign_mod::verify("", sign, format!("{}{}", timestamp, json)) {
-                true => warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut()),
-                false => warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut()),
+            let a = sign::sign_mod::verify("", sign, format!("{}{}", timestamp, json));
+            if a == true {
+               warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut());
+               
             }
+            warp::reply::with_status(        warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
         });
  
     
