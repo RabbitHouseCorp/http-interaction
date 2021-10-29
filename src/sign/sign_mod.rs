@@ -6,7 +6,7 @@ use self::ed25519_dalek::Signer;
 
 pub const SIGNATURE_DISCORD: usize = 0x0000080;
 
-pub fn verify(key: String, sign: String, message: String) -> bool {
+pub fn verify(key: &str, sign: String, message: String) -> bool {
   let publickey = Keypair::from_bytes(key.as_ref()).expect("err for decrypt public_key");
   let signature = publickey.sign(sign.as_ref());
 

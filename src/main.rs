@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, hash_map::{DefaultHasher, RandomState}}, convert::Infallible, error::Error, fmt::format, hash::Hash};
 use rand::Rng;
 use serde::{Serialize, Deserialize};
-use serde_json::json;
+use serde_json::{Value, json};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 
 use crate::structures::connection_state::ConnectionStateKraken;
@@ -63,8 +63,11 @@ async fn main() {
         .and(warp::header::header("X-Signature-Timestamp"))
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
-        .map(|sign: String, timestamp: String, mut json: DiscordData| {
-            sign::sign_mod::verify()
+        .map(|sign: String, timestamp: String, mut json: Value| {
+            match sign::sign_mod::verify("", sign, format!("{}{}", timestamp, json)) {
+                true => warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut()),
+                false => warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut()),
+            }
         });
  
     
