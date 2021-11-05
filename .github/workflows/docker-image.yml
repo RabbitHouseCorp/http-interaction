@@ -15,4 +15,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag http-interaction-discord-rabbit-house=corp:$(date +%s)
+      run: docker build . --file Dockerfile --tag http-interaction-discord-rabbit-house=corp:dd2fdce7254a153812db8cf63e8c253d22361b93
