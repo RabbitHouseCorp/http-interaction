@@ -1,4 +1,4 @@
-## Post Interaction
+## Http Interaction
 A small code for receiving Discord interactions, prepared for libraries that receive via WebSocket. What's up? curious to work with this cute little code?
 
 ## Download
@@ -20,6 +20,3 @@ In the Discord application portal you will need to put `http://ip:port/interacti
 - 401 = Request that was sent has an invalid signature.
 - 200 = OK
 
-
-## Libraries:
-**[Javascript](https://github.com/NavyCake/post-interaction-js)**
