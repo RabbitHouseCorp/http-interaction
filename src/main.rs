@@ -30,6 +30,10 @@ const HTTP_INTERACTION_CONFIRMATION_BOT: u64 = 1;
 const INTERACTION_COMMAND: u64 = 2;
 const INTERACTION_BUTTON: u64 = 3;
 
+async fn get_data() {
+
+}
+
 
 #[tokio::main]
 async fn main() {
@@ -75,8 +79,8 @@ async fn main() {
         .and(warp::body::json())
         .map(|sign: String, timestamp: String, json: HashMap<String, Value>| {
 
-            let a = sign_mod::verify_authorization(String::from(""), sign, format!("{}{:?}", timestamp, json));
-            match a {
+            let verify_sign = sign_mod::verify_authorization(String::from(""), sign, format!("{}{}", timestamp, json!(json)));
+            match verify_sign {
                 true => {
                     let type_interaction: &Value = json.get("type").unwrap();
 
@@ -84,13 +88,22 @@ async fn main() {
                         HTTP_INTERACTION_CONFIRMATION_BOT => {
                             return warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK);
                         }
+                        INTERACTION_COMMAND => {
+                            return warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK);
+                        }
+                        INTERACTION_BUTTON => {
+                            async {
+                                let data = get_data().await;
+                                return warp::reply::with_status(warp::reply::json(&json!(data).as_object_mut()), warp::http::StatusCode::OK);
+                            };
+                        }
                         _ => {}
                     }
 
-                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 404, "message": "Not b!", "error": true }).as_object_mut()), warp::http::StatusCode::OK)
+                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 200, "message": "Interaction unknown or not recognized", "error": false, "code_error": "HTTP_INTERACTION_UKNOWN" }).as_object_mut()), warp::http::StatusCode::OK)
                 }
                 false => {
-                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 404, "message": "Not a!", "error": true }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
+                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 401, "message": "Uh! It appears that this signature or metadata is incorrect. Check it out: https://discord.com/developers/docs/interactions/receiving-and-responding", "error": true, "code": "HTTP_UNAUTHORIZED" }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
                 }
             }
         });
