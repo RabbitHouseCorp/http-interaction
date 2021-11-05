@@ -1,5 +1,7 @@
-use std::{collections::{HashMap, hash_map::{DefaultHasher, RandomState}}, convert::Infallible, error::Error, fmt::format, hash::Hash};
-use serde::{Serialize, Deserialize, Deserializer};
+use std::collections::HashMap;
+use std::convert::Infallible;
+use std::error::Error;
+use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 
@@ -7,7 +9,6 @@ use crate::structures::connection_state::ConnectionStateKraken;
 mod structures;
 mod gateway;
 mod sign_mod;
-mod constants;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -23,11 +24,11 @@ struct ResponseData {
 struct DiscordData {}
 
 // HTTP
-const HTTP_INTERACTION_CONFIRMATION_BOT: i32 = 1;
+const HTTP_INTERACTION_CONFIRMATION_BOT: u64 = 1;
 
 // Interaction UI
-const INTERACTION_COMMAND: i32 = 2;
-const INTERACTION_BUTTON: i32 = 3;
+const INTERACTION_COMMAND: u64 = 2;
+const INTERACTION_BUTTON: u64 = 3;
 
 
 #[tokio::main]
@@ -72,11 +73,11 @@ async fn main() {
         .and(warp::header::header("X-Signature-Timestamp"))
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
-        .map(|sign: String, timestamp: String, mut json: HashMap<String, Value>| {
+        .map(|sign: String, timestamp: String, json: HashMap<String, Value>| {
 
             let a = sign_mod::verify_authorization(String::from(""), sign, format!("{}{:?}", timestamp, json));
             match a {
-                false => {
+                true => {
                     let type_interaction: &Value = json.get("type").unwrap();
 
                     match type_interaction.as_u64().unwrap() {
@@ -88,7 +89,7 @@ async fn main() {
 
                     warp::reply::with_status(warp::reply::json(&json!({ "status_code": 404, "message": "Not b!", "error": true }).as_object_mut()), warp::http::StatusCode::OK)
                 }
-                true => {
+                false => {
                     warp::reply::with_status(warp::reply::json(&json!({ "status_code": 404, "message": "Not a!", "error": true }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
                 }
             }
@@ -115,7 +116,7 @@ async fn error_api(err: Rejection) -> Result<impl Reply, Infallible> {
     if err.is_not_found() {
         message = "NOT_FOUND";
         code = StatusCode::NOT_FOUND;
-    } else if let Some(DivideByZero) = err.find::<Nope>() {
+    } else if let Some(_DivideByZero) = err.find::<Nope>() {
         code = StatusCode::BAD_REQUEST;
         message = "BAD_REQUEST_API";
     } else if let Some(e) = err.find::<warp::filters::body::BodyDeserializeError>() {
