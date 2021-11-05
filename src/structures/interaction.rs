@@ -7,6 +7,7 @@ pub struct InteractionData {
     pub token: String,
 }
 
+
 impl std::fmt::Debug for InteractionData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("InteractionData")

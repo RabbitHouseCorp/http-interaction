@@ -107,8 +107,7 @@ async fn main() {
                 }
             }
         });
- 
-    
+
     let routes = warp::any()
     .and(
         extern_api
@@ -116,7 +115,7 @@ async fn main() {
         .or(get_gateway)
     )
     .recover(error_api);
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
 
 #[derive(Debug)]
