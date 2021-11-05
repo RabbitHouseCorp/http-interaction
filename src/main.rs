@@ -1,13 +1,14 @@
 use std::{collections::{HashMap, hash_map::{DefaultHasher, RandomState}}, convert::Infallible, error::Error, fmt::format, hash::Hash};
-use rand::Rng;
-use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize, Deserializer};
 use serde_json::{Value, json};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 
 use crate::structures::connection_state::ConnectionStateKraken;
 mod structures;
 mod gateway;
-mod sign;
+mod sign_mod;
+mod constants;
+
 #[derive(Serialize)]
 struct ErrorMessage {
     code: u16,
@@ -20,6 +21,14 @@ struct ResponseData {
 
 #[derive(Serialize, Deserialize)]
 struct DiscordData {}
+
+// HTTP
+const HTTP_INTERACTION_CONFIRMATION_BOT: i32 = 1;
+
+// Interaction UI
+const INTERACTION_COMMAND: i32 = 2;
+const INTERACTION_BUTTON: i32 = 3;
+
 
 #[tokio::main]
 async fn main() {
@@ -63,13 +72,26 @@ async fn main() {
         .and(warp::header::header("X-Signature-Timestamp"))
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
-        .map(|sign: String, timestamp: String, mut json: Value| {
-            let a = sign::sign_mod::verify("", sign, format!("{}{}", timestamp, json));
-            if a == true {
-               warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut());
-               
+        .map(|sign: String, timestamp: String, mut json: HashMap<String, Value>| {
+
+            let a = sign_mod::verify_authorization(String::from(""), sign, format!("{}{:?}", timestamp, json));
+            match a {
+                false => {
+                    let type_interaction: &Value = json.get("type").unwrap();
+
+                    match type_interaction.as_u64().unwrap() {
+                        HTTP_INTERACTION_CONFIRMATION_BOT => {
+                            return warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK);
+                        }
+                        _ => {}
+                    }
+
+                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 404, "message": "Not b!", "error": true }).as_object_mut()), warp::http::StatusCode::OK)
+                }
+                true => {
+                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 404, "message": "Not a!", "error": true }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
+                }
             }
-            warp::reply::with_status(        warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
         });
  
     
