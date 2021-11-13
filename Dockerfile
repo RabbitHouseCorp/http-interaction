@@ -1,7 +1,12 @@
-FROM golang:1.17
-WORKDIR /opt/postinteraction-docker
+FROM rust:latest
 
+WORKDIR /opt
 
 COPY . .
 
-CMD ["go", "server.go"]
+RUN cargo build
+
+CMD ["cargo", "run"]
+
+
+EXPOSE 3030
