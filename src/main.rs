@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 use crossbeam::sync::WaitGroup;
 use crate::structures::connection_state::ConnectionStateKraken;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod structures;
 mod gateway;
 mod sign_mod;
@@ -37,7 +38,7 @@ async fn get_data() {
 
 
 #[tokio::main]
-async fn main() {
+async fn main()  {
  //   let mut interactions = HashMap::new();
     let mut gateways = HashMap::new();
    // let mut bot_connection_state = HashMap::new();
@@ -62,29 +63,17 @@ async fn main() {
     });
 
     let get_gateway = warp::path!("gateway" / u64).map(move |id: u64| {
-        match gateways.contains_key(&format!("{}", id.to_string())) {
-            false => {
-                return warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut(),)
-            }
-            true => {
-                gateways.get(&*id.to_string()).unwrap().sync.wait();
-                return warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK);
-            }
+        let math = gateways.contains_key(&format!("{0}", id.to_string()));
+        if math == true
+        {
+            // gateways.get(&*id.to_string()).unwrap().sync.wait();
+            return warp::reply::json(&json!({ "type": 1 }).as_object_mut())
         }
+            warp::reply::json(&json!({ "type": 1 }).as_object_mut())
     });
 
-    let test_gateway = warp::path!("gateway_test" / u64).map(move |id: u64| {
-        match gateways.contains_key(&format!("{}", id.to_string())) {
-            false => {
-                return warp::reply::json(&json!({ "status_code": 404, "message": "Not found!", "error": true }).as_object_mut(),)
-            }
-            true => {
-                gateways.get(&*id.to_string()).unwrap().sync.wait();
 
-                Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK);)
-            }
-        }
-    });
+
 
 
     let create_interaction = warp::post()
@@ -129,7 +118,7 @@ async fn main() {
         extern_api
         .or(create_interaction)
         .or(get_gateway)
-            .or(test_gateway)
+            // .or(test_gateway)
     )
     .recover(error_api);
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;

@@ -15,3 +15,7 @@
 # vendor/
 configuration.yml
 configuration.yaml
+
+.idea
+target
+Cargo.lock
