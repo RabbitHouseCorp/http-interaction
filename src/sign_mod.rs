@@ -37,3 +37,4 @@ pub fn verify_authorization(pub_key: String, sign: String, message: String) -> b
 
     return public_key.verify(message.as_bytes(), &signature).is_ok()
 }
+

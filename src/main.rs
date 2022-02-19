@@ -1,5 +1,10 @@
+#[macro_use]
+extern crate dotenv;
+
 use std::collections::HashMap;
 use std::convert::Infallible;
+use dotenv::dotenv;
+use std::env;
 use std::error::Error;
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
@@ -10,6 +15,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod structures;
 mod gateway;
 mod sign_mod;
+mod cryptography;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -49,11 +55,16 @@ async fn get_data() {}
 
 #[tokio::main]
 async fn main()  {
+    dotenv().ok(); // Load env
+
+    let token_secret = "dotenv!('PASSWORD_SECRET').unwrap()";
+
     let extern_api = warp::path::end().map(|| {
         warp::reply::json(
             &json!({ "status_code": 404, "message": "Not found!", "error": false }).as_object_mut()
         )
     });
+
 
 
     let create_interaction = warp::post()
