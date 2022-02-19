@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 use crossbeam::sync::WaitGroup;
-use crate::structures::connection_state::ConnectionStateKraken;
+use crate::structures::connection_state::{ConnectionStateKraken};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod structures;
 mod gateway;
@@ -22,6 +22,18 @@ struct ResponseData {
     status_code: u64,
 }
 
+
+#[derive(Serialize, Deserialize)]
+pub struct KrakenConnectionData {
+    session_id: String,
+    id: String,
+    bot_id: String,
+    master_shard: String,
+    secret: String,
+    scope: Vec<u64>,   // Flags
+    type_interaction: u64, // Flag,
+}
+
 #[derive(Serialize, Deserialize)]
 struct DiscordData {}
 
@@ -32,48 +44,16 @@ const HTTP_INTERACTION_CONFIRMATION_BOT: u64 = 1;
 const INTERACTION_COMMAND: u64 = 2;
 const INTERACTION_BUTTON: u64 = 3;
 
-async fn get_data() {
-
-}
+async fn get_data() {}
 
 
 #[tokio::main]
 async fn main()  {
- //   let mut interactions = HashMap::new();
-    let mut gateways = HashMap::new();
-   // let mut bot_connection_state = HashMap::new();
-  
-
-    gateways.insert(String::from("2000"), ConnectionStateKraken{
-        session_id: String::from(""),
-        id: String::from(""),
-        bot_id: String::from(""),
-        master_shard: String::from(""),
-        secret: String::from("everyone"),
-        scope: vec![0],
-        type_interaction: 0,
-        sync: WaitGroup::new().clone()
-    });
-    // GET /hello/warp => 200 OK with body "Hello, warp!"
     let extern_api = warp::path::end().map(|| {
-
         warp::reply::json(
-            &json!({ "status_code": 404, "message": "Not found!", "error": false }).as_object_mut(),
+            &json!({ "status_code": 404, "message": "Not found!", "error": false }).as_object_mut()
         )
     });
-
-    let get_gateway = warp::path!("gateway" / u64).map(move |id: u64| {
-        let math = gateways.contains_key(&format!("{0}", id.to_string()));
-        if math == true
-        {
-            // gateways.get(&*id.to_string()).unwrap().sync.wait();
-            return warp::reply::json(&json!({ "type": 1 }).as_object_mut())
-        }
-            warp::reply::json(&json!({ "type": 1 }).as_object_mut())
-    });
-
-
-
 
 
     let create_interaction = warp::post()
@@ -117,8 +97,6 @@ async fn main()  {
     .and(
         extern_api
         .or(create_interaction)
-        .or(get_gateway)
-            // .or(test_gateway)
     )
     .recover(error_api);
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
@@ -126,6 +104,7 @@ async fn main()  {
 
 #[derive(Debug)]
 struct Nope;
+
 
 async fn error_api(err: Rejection) -> Result<impl Reply, Infallible> {
     let code;

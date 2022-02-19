@@ -1,5 +1,5 @@
 use crossbeam::sync::WaitGroup;
-
+use serde_derive::{Deserialize, Serialize};
 #[derive(Clone)]
 pub struct ConnectionStateKraken {
     pub session_id: String,
