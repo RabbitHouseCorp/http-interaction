@@ -77,8 +77,7 @@ async fn main()  {
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
         .map(|sign: String, timestamp: String, json: HashMap<String, Value>| { interaction_create(sign, timestamp, json) });
-    let websocket_support = warp::post()
-        .and(warp::path("ws_interaction"))
+    let websocket_support = warp::path("ws_interaction")
         .and(warp::ws())
         .and(warp::header("Identification-Id"))
         .and(warp::header("Secret"))
