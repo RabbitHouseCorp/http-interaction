@@ -8,11 +8,13 @@ use std::env;
 use std::error::Error;
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
+use tracing::{span, Level};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 use crossbeam::sync::WaitGroup;
 use crate::structures::connection_state::{ConnectionStateKraken};
 use crate::routes::interaction::interaction_create::interaction_create;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tracing_subscriber::fmt::format::FmtSpan;
 use warp::ws::{Message, WebSocket, Ws};
 use crate::routes::websocket::websocket_server::get_websocket_server;
 
@@ -61,6 +63,12 @@ async fn get_data() {}
 #[tokio::main]
 async fn main()  {
     dotenv().ok(); // Load env
+    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
+
+    tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .init();
+
 
     let token_secret = "dotenv!('PASSWORD_SECRET').unwrap()";
 
@@ -72,26 +80,28 @@ async fn main()  {
 
     let create_interaction = warp::post()
         .and(warp::path("interaction"))
-        .and(warp::header::header("X-Signature-Ed25519")) 
+        .and(warp::header::header("X-Signature-Ed25519"))
         .and(warp::header::header("X-Signature-Timestamp"))
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
         .map(|sign: String, timestamp: String, json: HashMap<String, Value>| { interaction_create(sign, timestamp, json) });
     let websocket_support = warp::path("ws_interaction")
         .and(warp::ws())
-        .and(warp::header("Identification-Id"))
-        .and(warp::header("Secret"))
-        .map(|ws: Ws, id: String, secret: String | {
-            if id == "0" { warp::reject::reject(); }
-            if secret == "test" { warp::reject::reject(); }
+        // .and(warp::header::header("Identification-Id"))
+        // .and(warp::header::header("Secret"))
+        .map(|ws: Ws | {
+            // if id != "" { warp::reject::reject(); }
+            // if secret != "bG9sISEhIQ" { warp::reject::reject(); }
             ws.on_upgrade(move |socket| get_websocket_server(socket))
         });
     let routes = warp::any()
-    .and(
-        extern_api
-        .or(create_interaction)
-    )
-    .recover(error_api);
+        .and(
+            extern_api
+                .or(create_interaction)
+                .or(websocket_support)
+        )
+        .recover(error_api)
+        .with(warp::trace::request());;
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
 
