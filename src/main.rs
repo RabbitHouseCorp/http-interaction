@@ -13,6 +13,9 @@ use crossbeam::sync::WaitGroup;
 use crate::structures::connection_state::{ConnectionStateKraken};
 use crate::routes::interaction::interaction_create::interaction_create;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use warp::ws::{Message, WebSocket, Ws};
+use crate::routes::websocket::websocket_server::get_websocket_server;
+
 mod structures;
 mod gateway;
 mod sign_mod;
@@ -67,10 +70,6 @@ async fn main()  {
         )
     });
 
-
-
-
-
     let create_interaction = warp::post()
         .and(warp::path("interaction"))
         .and(warp::header::header("X-Signature-Ed25519")) 
@@ -78,7 +77,16 @@ async fn main()  {
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
         .map(|sign: String, timestamp: String, json: HashMap<String, Value>| { interaction_create(sign, timestamp, json) });
-
+    let websocket_support = warp::post()
+        .and(warp::path("ws_interaction"))
+        .and(warp::ws())
+        .and(warp::header("Identification-Id"))
+        .and(warp::header("Secret"))
+        .map(|ws: Ws, id: String, secret: String | {
+            if id == "0" { warp::reject::reject(); }
+            if secret == "test" { warp::reject::reject(); }
+            ws.on_upgrade(move |socket| get_websocket_server(socket))
+        });
     let routes = warp::any()
     .and(
         extern_api

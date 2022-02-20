@@ -1,7 +1,6 @@
 use warp;
+use warp::ws::{WebSocket};
 
-pub fn get_websocket_server() {
-    // return warp::ws::WebSocket::map(|| {
-    //
-    // })
+pub(crate) async fn get_websocket_server(ws: WebSocket) {
+
 }
