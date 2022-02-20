@@ -11,11 +11,13 @@ use serde_json::{Value, json};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 use crossbeam::sync::WaitGroup;
 use crate::structures::connection_state::{ConnectionStateKraken};
+use crate::routes::interaction::interaction_create::interaction_create;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 mod structures;
 mod gateway;
 mod sign_mod;
 mod cryptography;
+mod routes;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -67,42 +69,15 @@ async fn main()  {
 
 
 
+
+
     let create_interaction = warp::post()
         .and(warp::path("interaction"))
         .and(warp::header::header("X-Signature-Ed25519")) 
         .and(warp::header::header("X-Signature-Timestamp"))
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
-        .map(|sign: String, timestamp: String, json: HashMap<String, Value>| {
-
-            let verify_sign = sign_mod::verify_authorization(String::from(""), sign, format!("{}{}", timestamp, json!(json)));
-            match verify_sign {
-                true => {
-                    let type_interaction: &Value = json.get("type").unwrap();
-
-                    match type_interaction.as_u64().unwrap() {
-                        HTTP_INTERACTION_CONFIRMATION_BOT => {
-                            return warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK);
-                        }
-                        INTERACTION_COMMAND => {
-                            return warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK);
-                        }
-                        INTERACTION_BUTTON => {
-                            async {
-                                let data = get_data().await;
-                                return warp::reply::with_status(warp::reply::json(&json!(data).as_object_mut()), warp::http::StatusCode::OK);
-                            };
-                        }
-                        _ => {}
-                    }
-
-                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 200, "message": "Interaction unknown or not recognized", "error": false, "code_error": "HTTP_INTERACTION_UKNOWN" }).as_object_mut()), warp::http::StatusCode::OK)
-                }
-                false => {
-                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 401, "message": "Uh! It appears that this signature or metadata is incorrect. Check it out: https://discord.com/developers/docs/interactions/receiving-and-responding", "error": true, "code": "HTTP_UNAUTHORIZED" }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
-                }
-            }
-        });
+        .map(|sign: String, timestamp: String, json: HashMap<String, Value>| { interaction_create(sign, timestamp, json) });
 
     let routes = warp::any()
     .and(
