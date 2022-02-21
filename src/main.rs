@@ -24,6 +24,7 @@ use crate::routes::websocket::websocket_server::{websocket_message};
 use futures::{StreamExt, TryFutureExt};
 use futures::FutureExt;
 use rustc_serialize::json::ToJson;
+use crate::routes::websocket::structures::client::ClientBot;
 
 mod structures;
 mod gateway;
@@ -31,7 +32,7 @@ mod sign_mod;
 mod cryptography;
 mod routes;
 
-type Clients = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
+type Clients = Arc<RwLock<HashMap<usize, ClientBot>>>;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -104,7 +105,7 @@ async fn main()  {
             // if id != "" { warp::reject::reject(); }
             // if secret != "bG9sISEhIQ" { warp::reject::reject(); }
 
-            ws.on_upgrade(move |socket| websocket_message(socket))
+            ws.on_upgrade(move |socket| websocket_message(socket, clients))
 
         });
     let routes = warp::any()

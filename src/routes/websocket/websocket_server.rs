@@ -5,12 +5,14 @@ use futures::FutureExt;
 use futures::stream::{SplitSink, SplitStream};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use crate::TryFutureExt;
+use crate::{Clients, TryFutureExt};
 
-pub(crate) async fn websocket_message(ws: WebSocket) {
+pub(crate) async fn websocket_message(ws: WebSocket, clients: Clients,) {
     let (mut tx_client, mut rx_client) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
     let mut rx = UnboundedReceiverStream::new(rx);
+
+
 
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
