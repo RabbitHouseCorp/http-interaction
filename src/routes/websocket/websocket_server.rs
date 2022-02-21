@@ -87,6 +87,13 @@ pub(crate) async fn websocket_message(ws: WebSocket, mut clients: Clients, id: S
 
 }
 
+fn search_shard(guild_id: usize) -> i32 {
+    return ((guild_id >> 22) % 2) as i32
+}
+
+fn encrypt_data_str(inf: String) {
+
+}
 
 fn convert_to_binary(inf: &Value) -> Vec<u8> {
     let mut data = ZlibEncoder::new(Vec::new(), Compression::default());
