@@ -98,12 +98,12 @@ async fn main()  {
         .map(|sign: String, timestamp: String, json: HashMap<String, Value>| { interaction_create(sign, timestamp, json) });
     let websocket_support = warp::path("ws_interaction")
         .and(warp::ws())
+        .and(warp::header::header("Identification-Id"))
+        .and(warp::header::header("Secret"))
         .and(clients)
-        // .and(warp::header::header("Identification-Id"))
-        // .and(warp::header::header("Secret"))
-        .map(|ws: Ws, clients | {
-            // if id != "" { warp::reject::reject(); }
-            // if secret != "bG9sISEhIQ" { warp::reject::reject(); }
+        .map(|ws: Ws, id: String, secret: String, clients | {
+            if id != "" { warp::reject::reject(); }
+            if secret != "bG9sISEhIQ" { warp::reject::reject(); }
 
             ws.on_upgrade(move |socket| websocket_message(socket, clients))
 
