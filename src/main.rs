@@ -4,25 +4,34 @@ extern crate dotenv;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use dotenv::dotenv;
-use std::env;
+use std::{env, result};
+use std::borrow::Borrow;
 use std::error::Error;
+use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use serde_json::{Value, json};
 use tracing::{span, Level};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
 use crossbeam::sync::WaitGroup;
+use futures::task::Spawn;
 use crate::structures::connection_state::{ConnectionStateKraken};
 use crate::routes::interaction::interaction_create::interaction_create;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::sync::{mpsc, RwLock};
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::ws::{Message, WebSocket, Ws};
-use crate::routes::websocket::websocket_server::get_websocket_server;
+use crate::routes::websocket::websocket_server::{websocket_message};
+use futures::{StreamExt, TryFutureExt};
+use futures::FutureExt;
+use rustc_serialize::json::ToJson;
 
 mod structures;
 mod gateway;
 mod sign_mod;
 mod cryptography;
 mod routes;
+
+type Clients = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -64,11 +73,12 @@ async fn get_data() {}
 async fn main()  {
     dotenv().ok(); // Load env
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
-
+    let clients = Clients::default();
     tracing_subscriber::fmt()
-        .with_max_level(Level::TRACE)
+        .with_max_level(Level::DEBUG)
         .init();
 
+    let clients = warp::any().map(move || clients.clone());
 
     let token_secret = "dotenv!('PASSWORD_SECRET').unwrap()";
 
@@ -87,12 +97,15 @@ async fn main()  {
         .map(|sign: String, timestamp: String, json: HashMap<String, Value>| { interaction_create(sign, timestamp, json) });
     let websocket_support = warp::path("ws_interaction")
         .and(warp::ws())
+        .and(clients)
         // .and(warp::header::header("Identification-Id"))
         // .and(warp::header::header("Secret"))
-        .map(|ws: Ws | {
+        .map(|ws: Ws, clients | {
             // if id != "" { warp::reject::reject(); }
             // if secret != "bG9sISEhIQ" { warp::reject::reject(); }
-            ws.on_upgrade(move |socket| get_websocket_server(socket))
+
+            ws.on_upgrade(move |socket| websocket_message(socket))
+
         });
     let routes = warp::any()
         .and(
@@ -101,7 +114,7 @@ async fn main()  {
                 .or(websocket_support)
         )
         .recover(error_api)
-        .with(warp::trace::request());;
+        .with(warp::trace::request());
     warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
 
