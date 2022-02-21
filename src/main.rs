@@ -32,7 +32,7 @@ mod sign_mod;
 mod cryptography;
 mod routes;
 
-type Clients = Arc<RwLock<HashMap<usize, ClientBot>>>;
+type Clients = Arc<RwLock<HashMap<String, ClientBot>>>;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -74,7 +74,7 @@ async fn get_data() {}
 async fn main()  {
     dotenv().ok(); // Load env
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
-    let clients = Clients::default();
+    let mut clients = Clients::default();
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
         .init();
@@ -100,12 +100,14 @@ async fn main()  {
         .and(warp::ws())
         .and(warp::header::header("Identification-Id"))
         .and(warp::header::header("Secret"))
+        .and(warp::header::header("Shard-In"))
+        .and(warp::header::header("Shard-Total"))
         .and(clients)
-        .map(|ws: Ws, id: String, secret: String, clients | {
+        .map(|ws: Ws, id: String, secret: String, shard_in: String, shard_total: String,  clients | {
             if id != "" { warp::reject::reject(); }
             if secret != "bG9sISEhIQ" { warp::reject::reject(); }
 
-            ws.on_upgrade(move |socket| websocket_message(socket, clients))
+            ws.on_upgrade(move |socket| websocket_message(socket, clients, id, secret, shard_in.parse().unwrap(), shard_total.parse().unwrap()))
 
         });
     let routes = warp::any()
