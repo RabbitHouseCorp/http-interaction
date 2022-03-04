@@ -2,6 +2,6 @@
 
 
 
-pub fn register_client() {
+pub fn confirm_shard() {
     
 }

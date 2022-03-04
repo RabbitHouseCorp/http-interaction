@@ -1,2 +1,3 @@
-mod decode;
+pub mod decode;
+pub mod encode;
 

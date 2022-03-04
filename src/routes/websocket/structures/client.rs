@@ -1,33 +1,38 @@
+
 use std::collections::HashMap;
 use std::sync::Arc;
+use futures::stream::{SplitSink, SplitStream};
 use serde_json::Value;
 use tokio::sync::{mpsc, RwLock};
 use tokio::sync::mpsc::UnboundedSender;
-use warp::ws::Message;
+use warp::ws::{Message, WebSocket};
+use derive_more::Display;
+
 
 pub struct ClientBot {
-     // pub(crate) _id: String,
-     pub(crate) api_note: String,
-     pub(crate) rate_limit_note: String,
-     pub(crate) bandwidth_rx: u128,
-     pub(crate) bandwidth_tx: u128,
-     pub(crate) shards: Vec<usize>,
-     pub(crate) ws: Vec<Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Message>>>>>,
-     pub(crate) latency: Vec<usize>,
-     pub(crate) connected: bool,
-     pub(crate) stop_sending: bool,
-     pub(crate) is_sharding: bool,
-     pub(crate) is_confirmed: bool,
-     pub(crate) is_connection_secured: bool,
-     pub(crate) is_connection_tls: bool,
-     pub(crate) sentry: bool,
-     pub(crate) encrypted_data: bool,
-     pub(crate) encryption_part: String,
-     pub(crate) interaction_not_sync: Vec<HashMap<String, Value>>,
-     pub(crate) clusters_api: Vec<HashMap<String, Value>>,
-     pub(crate) errors: Vec<HashMap<String, Value>>,
-     pub(crate) rate_limit: Vec<HashMap<String, Value>>,
+    // pub(crate) _id: String,
+    pub api_note: String,
+    pub(crate) rate_limit_note: String,
+    pub(crate) bandwidth_rx: u128,
+    pub(crate) bandwidth_tx: u128,
+    pub(crate) shards: Vec<usize>,
+    pub(crate) ws: Vec<(SplitSink<WebSocket, Message>, SplitStream<WebSocket>)>,
+    pub(crate) latency: Vec<usize>,
+    pub(crate) connected: bool,
+    pub(crate) stop_sending: bool,
+    pub(crate) is_sharding: bool,
+    pub(crate) is_confirmed: bool,
+    pub(crate) is_connection_secured: bool,
+    pub(crate) is_connection_tls: bool,
+    pub(crate) sentry: bool,
+    pub(crate) encrypted_data: bool,
+    pub(crate) encryption_part: String,
+    pub(crate) interaction_not_sync: Vec<HashMap<String, Value>>,
+    pub(crate) clusters_api: Vec<HashMap<String, Value>>,
+    pub(crate) errors: Vec<HashMap<String, Value>>,
+    pub(crate) rate_limit: Vec<HashMap<String, Value>>,
 }
+
 
 impl ClientBot {
     // fn _id(&self) -> &String { &self._id }
@@ -36,7 +41,7 @@ impl ClientBot {
     fn bandwidth_rx(&self) -> &u128 { &self.bandwidth_rx }
     fn bandwidth_tx(&self) -> &u128 { &self.bandwidth_tx }
     fn shards(&self) -> &Vec<usize> { &self.shards }
-    fn ws(&self) -> &Vec<Arc<RwLock<HashMap<usize, UnboundedSender<Message>>>>> { &self.ws }
+    fn ws(&self) -> &Vec<(SplitSink<WebSocket, Message>, SplitStream<WebSocket>)> { &self.ws }
     fn latency(&self) -> &Vec<usize> { &self.latency }
     fn connected(&self) -> &bool { &self.connected }
     fn stop_sending(&self) -> &bool { &self.stop_sending }
