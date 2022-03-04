@@ -15,9 +15,9 @@ pub struct ClientBot {
     pub(crate) rate_limit_note: String,
     pub(crate) bandwidth_rx: u128,
     pub(crate) bandwidth_tx: u128,
-    pub(crate) shards: Vec<usize>,
-    pub(crate) ws: Vec<(SplitSink<WebSocket, Message>, SplitStream<WebSocket>)>,
-    pub(crate) latency: Vec<usize>,
+    pub(crate) shards: HashMap<usize, bool>,
+    pub(crate) ws: HashMap<String, UnboundedSender<Message>>,
+    pub(crate) latency: HashMap<String, Vec<usize>>,
     pub(crate) connected: bool,
     pub(crate) stop_sending: bool,
     pub(crate) is_sharding: bool,
@@ -40,9 +40,9 @@ impl ClientBot {
     fn rate_limit_note(&self) -> &String { &self.rate_limit_note }
     fn bandwidth_rx(&self) -> &u128 { &self.bandwidth_rx }
     fn bandwidth_tx(&self) -> &u128 { &self.bandwidth_tx }
-    fn shards(&self) -> &Vec<usize> { &self.shards }
-    fn ws(&self) -> &Vec<(SplitSink<WebSocket, Message>, SplitStream<WebSocket>)> { &self.ws }
-    fn latency(&self) -> &Vec<usize> { &self.latency }
+    fn shards(&self) -> &HashMap<usize, bool> { &self.shards }
+    fn ws(&self) -> &HashMap<String, UnboundedSender<Message>> { &self.ws }
+    fn latency(&self) -> &HashMap<String, Vec<usize>> { &self.latency }
     fn connected(&self) -> &bool { &self.connected }
     fn stop_sending(&self) -> &bool { &self.stop_sending }
     fn is_sharding(&self) -> &bool { &self.is_sharding }

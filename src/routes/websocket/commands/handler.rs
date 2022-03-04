@@ -1,5 +1,6 @@
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
+use std::io::Read;
 use futures::sink::Close;
 use futures::SinkExt;
 use futures::stream::{SplitSink, SplitStream};
@@ -22,10 +23,12 @@ pub fn load_commands(data: Value, mut tx: &UnboundedSender<Message>, clients: &m
     match type_command {
         // Confirm metadata.
         0 => {
-            let client =  clients.read().await.get(&*id);
-            if client.is_none() && client.is_some() {
-                return;
-            }
+           async {
+               let client = clients.gget(&id.to_string());
+               if client.is_none() {
+                   return;
+               }
+           };
 
             tx.send(Message::binary(convert_to_binary(&json!({
                             "type": 2,

@@ -1,4 +1,5 @@
 use std::borrow::{Borrow, BorrowMut};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use warp;
 use warp::ws::{Message, WebSocket};
@@ -21,7 +22,7 @@ use warp::Error;
 use crate::cryptography::encode::encode_data;
 use crate::routes::websocket::commands::handler::load_commands;
 
-pub(crate) async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize) {
+pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize) {
     let (mut tx_client, mut rx_client) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
     let mut rx = UnboundedReceiverStream::new(rx);
@@ -34,28 +35,9 @@ pub(crate) async fn websocket_message(ws: WebSocket, mut clients: Clients, id: S
         tx_client.send(Message::binary(convert_to_binary(inf)).clone()).await;
         tx_client.send(Message::close().clone()).await;
         return;}
-    let mut client = ClientBot {
-        api_note: "".to_string(),
-        rate_limit_note: "".to_string(),
-        bandwidth_rx: 0,
-        bandwidth_tx: 0,
-        shards: vec![],
-        ws: vec![],
-        latency: vec![],
-        connected: false,
-        stop_sending: false,
-        is_sharding: false,
-        is_confirmed: false,
-        is_connection_secured: false,
-        is_connection_tls: false,
-        sentry: false,
-        encrypted_data: false,
-        encryption_part: "".to_string(),
-        interaction_not_sync: vec![],
-        clusters_api: vec![],
-        errors: vec![],
-        rate_limit: vec![]
-    };
+
+
+
     tx_client.send(Message::binary(convert_to_binary(&json!({
         "type": 1,
         "possible_error": false,
@@ -65,20 +47,14 @@ pub(crate) async fn websocket_message(ws: WebSocket, mut clients: Clients, id: S
     })))).await;
     match found_client {
         true => {
-            println!("Registra isso");
-            let mut shards = vec![];
-            let ws = vec![];
-            shards.insert((shard_in - 1), 0);
-            // ws.insert(shard_in, (tx_client, rx_client));
-
-            client = ClientBot {
-                api_note: msg.parse().unwrap(),
-                rate_limit_note: rate.parse().unwrap(),
-                bandwidth_rx: 128 * 1000000000000 / 25 + 9249420456 / 2,
-                bandwidth_tx: 3200 * 1000000000000 / 25 + 9249420456 / 2,
-                shards: shards,
-                ws: ws,
-                latency: vec![],
+            let mut client = ClientBot {
+                api_note: "".to_string(),
+                rate_limit_note: "".to_string(),
+                bandwidth_rx: 0,
+                bandwidth_tx: 0,
+                shards: HashMap::new(),
+                ws: HashMap::new(),
+                latency: HashMap::new(),
                 connected: false,
                 stop_sending: false,
                 is_sharding: false,
@@ -93,10 +69,14 @@ pub(crate) async fn websocket_message(ws: WebSocket, mut clients: Clients, id: S
                 errors: vec![],
                 rate_limit: vec![]
             };
+            client.ws.insert(shard_in.to_string(), tx.clone());
             clients.write().await.insert(id_client, client);
             println!("Account registered: {}", clients.read().await.capacity())
         }
-        false => {}
+        false => {
+            let mut client = if let Some(data) = get_client(clients, id).await { data } else {};
+            let updated = client.ws.insert(shard_in.to_string(), tx.clone());
+        }
     }
     let a = tx;
 
@@ -139,6 +119,10 @@ fn search_shard(guild_id: usize) -> i32 {
 pub fn encrypt_data_str(inf: String) -> (String, Sha512, Result<SecretKey, SignatureError>) {
     let (data, sha, key) = encode_data(String::from("testing"), inf);
     return (data, sha, key)
+}
+
+async fn get_client(clients: Clients, id: String) -> Option<&'static ClientBot> {
+    clients.read().await.get(&id.to_string())
 }
 
 pub async fn send_metadata(mut tx_client: SplitSink<WebSocket, Message>, x: &Value) -> Result<(), Error> {
