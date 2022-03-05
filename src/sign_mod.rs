@@ -36,7 +36,7 @@ pub fn verify_authorization(pub_key: String, sign: String, message: String) -> b
     if hex_signature.is_err() {
         eprintln!("err -> Err: hex_signature");
         return false; }
-    let public_key = PublicKey::from_bytes(&public_key.unwrap());
+    let public_key = PublicKey::from_bytes(&public_key.unwrap().clone());
     if public_key.is_err() {
         eprintln!("err -> Err: public_key");
         return false; }
@@ -44,6 +44,10 @@ pub fn verify_authorization(pub_key: String, sign: String, message: String) -> b
     if signature.is_err() {
         eprintln!("err -> Err: signature");
         return false; }
-    return public_key.unwrap().verify(message.as_bytes(), &signature.unwrap()).is_ok()
+    let ok = public_key.unwrap().verify(message.as_bytes(), &signature.unwrap());
+    if ok.is_err() {
+        return false;
+    }
+    return true
 }
 
