@@ -71,11 +71,9 @@ pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, 
             };
             client.ws.insert(shard_in.to_string(), tx.clone());
             clients.write().await.insert(id_client, client);
-            println!("Account registered: {}", clients.read().await.capacity())
+
         }
         false => {
-            let mut client = if let Some(data) = get_client(clients, id).await { data } else {};
-            let updated = client.ws.insert(shard_in.to_string(), tx.clone());
         }
     }
     let a = tx;
@@ -119,10 +117,6 @@ fn search_shard(guild_id: usize) -> i32 {
 pub fn encrypt_data_str(inf: String) -> (String, Sha512, Result<SecretKey, SignatureError>) {
     let (data, sha, key) = encode_data(String::from("testing"), inf);
     return (data, sha, key)
-}
-
-async fn get_client(clients: Clients, id: String) -> Option<&'static ClientBot> {
-    clients.read().await.get(&id.to_string())
 }
 
 pub async fn send_metadata(mut tx_client: SplitSink<WebSocket, Message>, x: &Value) -> Result<(), Error> {

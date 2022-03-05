@@ -23,13 +23,6 @@ pub fn load_commands(data: Value, mut tx: &UnboundedSender<Message>, clients: &m
     match type_command {
         // Confirm metadata.
         0 => {
-           async {
-               let client = clients.gget(&id.to_string());
-               if client.is_none() {
-                   return;
-               }
-           };
-
             tx.send(Message::binary(convert_to_binary(&json!({
                             "type": 2,
                             "data": {
