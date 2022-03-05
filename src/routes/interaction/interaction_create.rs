@@ -1,13 +1,16 @@
 extern crate warp;
 use std::collections::HashMap;
+use std::convert::Infallible;
+use std::sync::Arc;
 use aes_gcm::aead::generic_array::typenum::And;
 use serde_json::{json, Map, Value};
+use tokio::sync::RwLock;
 use warp::{Filter, Rejection};
 use warp::path::Exact;
 use warp::reply::{Json, WithStatus};
-use crate::{get_data, HTTP_INTERACTION_CONFIRMATION_BOT, INTERACTION_COMMAND, sign_mod};
+use crate::{ClientBot, Clients, get_data, HTTP_INTERACTION_CONFIRMATION_BOT, INTERACTION_COMMAND, sign_mod};
 
-pub fn interaction_create(sign: String, timestamp: String, json: HashMap<String, Value>) -> WithStatus<Json> {
+pub fn interaction_create(sign: String, timestamp: String, json: HashMap<String, Value>, mut clients: Clients) -> WithStatus<Json> {
     let verify_sign = sign_mod::verify_authorization(String::from(""), sign, format!("{}{}", timestamp, json!(json)));
     match verify_sign {
         true => {

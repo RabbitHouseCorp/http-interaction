@@ -48,28 +48,9 @@ pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, 
     match found_client {
         true => {
             let mut client = ClientBot {
-                api_note: "".to_string(),
-                rate_limit_note: "".to_string(),
-                bandwidth_rx: 0,
-                bandwidth_tx: 0,
-                shards: HashMap::new(),
-                ws: HashMap::new(),
-                latency: HashMap::new(),
-                connected: false,
-                stop_sending: false,
-                is_sharding: false,
-                is_confirmed: false,
-                is_connection_secured: false,
-                is_connection_tls: false,
-                sentry: false,
-                encrypted_data: false,
-                encryption_part: "".to_string(),
-                interaction_not_sync: vec![],
-                clusters_api: vec![],
-                errors: vec![],
-                rate_limit: vec![]
+                _id: id.clone(),
+                tx: tx.clone()
             };
-            client.ws.insert(shard_in.to_string(), tx.clone());
             clients.write().await.insert(id_client, client);
 
         }
@@ -135,7 +116,6 @@ pub fn convert_to_binary(inf: &Value) -> Vec<u8> {
 
 fn message_interface(message: Message, mut x: &UnboundedSender<Message>, id: String, mut client: Clients) {
     let tx = x;
-    println!("1");
     let message = if let Ok(a) = message.to_str()
     { a } else { return; };
     if message == "" {
