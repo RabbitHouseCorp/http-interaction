@@ -29,13 +29,21 @@ use self::ed25519_dalek::ed25519::signature::Signature;
 // pub const SIGNATURE_DISCORD_TIMESTAMP: usize = 0x00000040;
 pub fn verify_authorization(pub_key: String, sign: String, message: String) -> bool {
     let public_key = hex::decode(pub_key);
-    if public_key.is_err() { return false; }
+    if public_key.is_err() {
+        eprintln!(hex_signature.err());
+        return false; }
     let hex_signature = hex::decode(sign);
-    if hex_signature.is_err() {  return false; }
+    if hex_signature.is_err() {
+        eprintln!(hex_signature.err());
+        return false; }
     let public_key = PublicKey::from_bytes(&public_key.unwrap());
-    if public_key.is_err() {  return false; }
+    if public_key.is_err() {
+        eprintln!(hex_signature.err());
+        return false; }
     let signature = ed25519_dalek::Signature::from_bytes(&hex_signature.unwrap());
-    if signature.is_err() {  return false; }
+    if signature.is_err() {
+        eprintln!(hex_signature.err());
+        return false; }
     return public_key.unwrap().verify(message.as_bytes(), &signature.unwrap()).is_ok()
 }
 
