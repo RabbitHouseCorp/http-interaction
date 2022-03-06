@@ -18,7 +18,7 @@ use crate::routes::websocket::websocket_server::convert_to_binary;
 pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<String, Value>, clients: Clients, interactions: Interactions) -> Result<impl warp::Reply, Infallible>
 {
     let verify_sign = sign_mod::verify_authorization(String::from(""), sign, format!("{}{}", timestamp, json!(json)));
-    match !verify_sign {
+    match verify_sign {
         true => {
             let type_interaction: &Value = json.get("type").unwrap();
             let type_int = type_interaction.as_u64().unwrap();
