@@ -21,6 +21,7 @@ use warp::body::json;
 use warp::Error;
 use crate::cryptography::encode::encode_data;
 use crate::routes::websocket::commands::handler::load_commands;
+use crate::routes::websocket::structures::client::ClientWs;
 
 pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize) {
     let (mut tx_client, mut rx_client) = ws.split();
@@ -48,13 +49,24 @@ pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, 
     match found_client {
         true => {
             let mut client = ClientBot {
-                _id: id.clone(),
-                tx: tx.clone()
+               ws: ClientWs {
+                   _id: id.clone(),
+                   tx: tx.clone()
+               }
             };
             clients.write().await.insert(id_client, client);
 
         }
         false => {
+            let mut client = ClientBot {
+                ws: ClientWs {
+                    _id: id.clone(),
+                    tx: tx.clone()
+                }
+            };
+            clients.write().await.remove(id.clone().as_str());
+            clients.write().await.insert(id_client, client);
+
         }
     }
     let a = tx;

@@ -10,12 +10,17 @@ use derive_more::Display;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 
-pub struct ClientBot {
+pub struct ClientWs {
     pub _id: String,
-    pub tx: UnboundedSender<Message>,
+    pub(crate) tx: UnboundedSender<Message>,
 }
 
 impl ClientBot {
-    fn _id(&self) -> &String { &self._id }
-    fn tx(&self) -> &UnboundedSender<Message> { &self.tx }
+    fn update_id(&self) -> &String { &self.ws._id }
+    fn update_tx(&self) -> &UnboundedSender<Message> { &self.ws.tx }
+}
+
+
+pub struct ClientBot {
+    pub ws: ClientWs
 }

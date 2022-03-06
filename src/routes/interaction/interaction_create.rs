@@ -9,7 +9,7 @@ use warp::{Filter, Rejection};
 use warp::path::Exact;
 use warp::reply::{Json, WithStatus};
 use warp::ws::Message;
-use crate::{ClientBot, Clients, get_data, HTTP_INTERACTION_CONFIRMATION_BOT, INTERACTION_COMMAND, sign_mod};
+use crate::{ClientBot, Clients, get_data, HTTP_INTERACTION_CONFIRMATION_BOT, INTERACTION_BUTTON, INTERACTION_COMMAND, sign_mod};
 use crate::routes::websocket::websocket_server::convert_to_binary;
 
 // WithStatus<Json>
@@ -29,7 +29,7 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                 }
                 for (id, client) in clients.read().await.iter() {
                     if json.get("application_id").unwrap() == id {
-                        if let Err(_disconnected) =  client.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
+                        if let Err(_disconnected) =  client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
 
                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
@@ -64,6 +64,21 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                 "allowed_mentions": []
                     } }).as_object_mut()), warp::http::StatusCode::OK))
 
+            }
+
+            if type_int == INTERACTION_BUTTON {
+                println!("Confirmando o botão...");
+                Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                                "tts": false,
+								"content": "There was a problem with the interaction!",
+                                "embeds": [
+                                    {
+                                        "color":       "#ff1212",
+                                        "description": "I didn't get a response from the bot, try again or you can contact the developer through the support server."
+                                    }
+                                ],
+                                "allowed_mentions": []
+                    } }).as_object_mut()), warp::http::StatusCode::OK));
             }
 
             Ok(
