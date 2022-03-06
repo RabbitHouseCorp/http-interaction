@@ -85,6 +85,7 @@ async fn main() {
 
     let clients = warp::any().map(move || clients.clone());
     let interactions = warp::any().map(move || interactions.clone());
+    let pub_key = warp::any().map(move || env::var("BOTS_DISCORD").unwrap());
 
     let token_secret = "dotenv!('PASSWORD_SECRET').unwrap()";
 
@@ -95,6 +96,7 @@ async fn main() {
     });
 
     let create_interaction = warp::path("interaction")
+        .and(pub_key)
         .and(warp::header::header("X-Signature-Ed25519"))
         .and(warp::header::header("X-Signature-Timestamp"))
         .and(warp::body::content_length_limit(1024 * 900))
@@ -106,15 +108,14 @@ async fn main() {
         .and(warp::ws())
         .and(warp::header::header("Identification-Id"))
         .and(warp::header::header("Secret"))
+        .and(warp::header::header("Public-Key"))
         .and(warp::header::header("Shard-In"))
         .and(warp::header::header("Shard-Total"))
         .and(clients.clone())
         .and(interactions.clone())
-        .map(|ws: Ws, id: String, secret: String, shard_in: String, shard_total: String, clients, interactions | {
-            if id != "" { warp::reject::reject(); }
-            if secret != "bG9sISEhIQ" { warp::reject::reject(); }
-
-            ws.on_upgrade(move |socket| websocket_message(socket, clients, id, secret, shard_in.parse().unwrap(), shard_total.parse().unwrap(), interactions))
+        .map(|ws: Ws, id: String, secret: String, pub_key_a: String, shard_in: String, shard_total: String, clients, interactions | {
+            ws.on_upgrade(move |socket| websocket_message(socket, clients, id, secret, shard_in.parse().unwrap(), shard_total.parse().unwrap(),
+                                                          interactions, (pub_key_a, env::var("KEY_SECRET").unwrap(), env::var("PUBLIC_KEY").unwrap(), env::var("BOTS_DISCORD").unwrap())))
 
         });
     let routes = warp::any()

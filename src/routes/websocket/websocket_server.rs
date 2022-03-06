@@ -27,14 +27,29 @@ use crate::cryptography::encode::encode_data;
 use crate::routes::websocket::commands::handler::load_commands;
 use crate::routes::websocket::structures::client::ClientWs;
 
-pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize, mut interactions: Interactions) {
+pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize, mut interactions: Interactions, x: (String, String, String, String)) {
+    let (pub_key, secret_key, pub_key_discord, bot_discord) = x;
+    if secret_key.find(&secret.clone()).is_none() {
+        ws.close();
+        return;
+    }
+    if pub_key_discord.find(&pub_key.clone()).is_none() {
+        ws.close();
+        return;
+    }
+    if bot_discord.find(&id.clone()).is_none()   {
+        ws.close();
+        return;
+    }
     let (mut tx_client, mut rx_client) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
     let mut rx = UnboundedReceiverStream::new(rx);
+
     let msg = "WARNING: THIS API IS FULLY LIMITED FOR SYNC REASONS SOMETIMES THE INTERACTION MAY TAKE TIME BECAUSE OF THE FOREGOING OR BAND BAND WHY MAY DELAY THE ENCRYPTED DATA LATTERY.";
     let rate = "API THERE ARE LIMITATIONS ON SENDING OVERCOMMANDS. TAKE CARE BEFORE SENDING MULTIPLE COMMANDS.";
     let (id_client) = id.clone();
     let found_client = clients.read().await.get(&id_client).is_none();
+
     if shard_in > shard_total {
         let inf = &json!({"type": 0, "possible_error": true, "message": "Excuse me! I'm terminating the connection due to too many shards.", "data": {}, "rate_limit": true});
         tx_client.send(Message::binary(convert_to_binary(inf)).clone()).await;

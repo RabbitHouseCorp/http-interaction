@@ -1,4 +1,5 @@
 extern crate warp;
+extern crate dotenv;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -15,25 +16,27 @@ use crate::{ClientBot, Clients, get_data, interaction_autocomplete, interaction_
 use crate::routes::websocket::websocket_server::convert_to_binary;
 
 // WithStatus<Json>
-pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<String, Value>, clients: Clients, interactions: Interactions) -> Result<impl warp::Reply, Infallible>
+pub async fn interaction_create(pub_key: String, sign: String, timestamp: String, json: HashMap<String, Value>, clients: Clients, interactions: Interactions) -> Result<impl warp::Reply, Infallible>
 {
-    let verify_sign = sign_mod::verify_authorization(String::from(""), sign, format!("{}{}", timestamp, json!(json)));
-    match verify_sign {
-        true => {
-            let type_interaction: &Value = json.get("type").unwrap();
-            let type_int = type_interaction.as_u64().unwrap();
-            if type_int == interaction_ping {
-                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK));
-            }
-            if type_int == interaction_command {
-                if json.get("application_id").is_none() {
-                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
+    let mut keys_with_space = pub_key.split(" ");
+    for key in keys_with_space {
+        let verify_sign = sign_mod::verify_authorization(String::from(dotenv::var("PUBLIC_KEY").unwrap()), sign, format!("{}{}", timestamp, json!(json)));
+        match verify_sign {
+            true => {
+                let type_interaction: &Value = json.get("type").unwrap();
+                let type_int = type_interaction.as_u64().unwrap();
+                if type_int == interaction_ping {
+                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK));
                 }
-                for (id, client) in clients.read().await.iter() {
-                    if json.get("application_id").unwrap() == id {
-                        if let Err(_disconnected) =  client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
+                if type_int == interaction_command {
+                    if json.get("application_id").is_none() {
+                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
+                    }
+                    for (id, client) in clients.read().await.iter() {
+                        if json.get("application_id").unwrap() == id {
+                            if let Err(_disconnected) =  client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
 
-                               return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
 								"content": "There was a problem with the interaction!",
                                 "embeds": [
@@ -45,16 +48,16 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                    "allowed_mentions": []
                             } }).as_object_mut()), warp::http::StatusCode::OK));
 
-                            break;
+                                break;
+                            }
+                            return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK));
+
                         }
-                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK));
-
                     }
-                }
 
-                eprintln!("Application offline");
+                    eprintln!("Application offline");
 
-                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
 								"content": "There was a problem with the interaction!",
                                 "embeds": [
@@ -66,17 +69,17 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                 "allowed_mentions": []
                     } }).as_object_mut()), warp::http::StatusCode::OK))
 
-            }
-
-            if type_int == interaction_button {
-                if json.get("application_id").is_none() {
-                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
                 }
 
-                for (id, client) in clients.read().await.iter() {
-                    if json.get("application_id").unwrap() == id {
-                        if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
-                            return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                if type_int == interaction_button {
+                    if json.get("application_id").is_none() {
+                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
+                    }
+
+                    for (id, client) in clients.read().await.iter() {
+                        if json.get("application_id").unwrap() == id {
+                            if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
 								"content": "There was a problem with the interaction!",
                                 "embeds": [
@@ -87,30 +90,30 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                 ],
                                    "allowed_mentions": []
                             } }).as_object_mut()), warp::http::StatusCode::OK));
-                        }
-                        tokio::time::sleep(Duration::from_millis(400)).await;
-
-                        for (id, interaction) in interactions.read().await.iter() {
-                            if id.to_string() == json.get("id").unwrap().to_string() {
-                                let mut data_interaction = interaction.clone();
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
                             }
-                        }
+                            tokio::time::sleep(Duration::from_millis(400)).await;
 
-                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK));
+                            for (id, interaction) in interactions.read().await.iter() {
+                                if id.to_string() == json.get("id").unwrap().to_string() {
+                                    let mut data_interaction = interaction.clone();
+                                    return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
+                                }
+                            }
+
+                            return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK));
+                        }
                     }
                 }
-            }
 
-            if type_int == interaction_autocomplete {
-                if json.get("application_id").is_none() {
-                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
-                }
+                if type_int == interaction_autocomplete {
+                    if json.get("application_id").is_none() {
+                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
+                    }
 
-                for (id, client) in clients.read().await.iter() {
-                    if json.get("application_id").unwrap() == id {
-                        if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
-                            return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                    for (id, client) in clients.read().await.iter() {
+                        if json.get("application_id").unwrap() == id {
+                            if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
 								"content": "There was a problem with the interaction!",
                                 "embeds": [
@@ -121,22 +124,22 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                 ],
                                    "allowed_mentions": []
                             } }).as_object_mut()), warp::http::StatusCode::OK));
+                            }
+
+                            return Ok(warp::reply::with_status(warp::reply::json(&json!({ }).as_object_mut()), warp::http::StatusCode::OK));
                         }
-                     
-                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ }).as_object_mut()), warp::http::StatusCode::OK));
                     }
                 }
-            }
 
-            if type_int == interaction_modal_submit {
-                if json.get("application_id").is_none() {
-                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
-                }
+                if type_int == interaction_modal_submit {
+                    if json.get("application_id").is_none() {
+                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
+                    }
 
-                for (id, client) in clients.read().await.iter() {
-                    if json.get("application_id").unwrap() == id {
-                        if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
-                            return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                    for (id, client) in clients.read().await.iter() {
+                        if json.get("application_id").unwrap() == id {
+                            if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
 								"content": "There was a problem with the interaction!",
                                 "embeds": [
@@ -147,17 +150,17 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                 ],
                                    "allowed_mentions": []
                             } }).as_object_mut()), warp::http::StatusCode::OK));
-                        }
-                        tokio::time::sleep(Duration::from_millis(400)).await;
-
-                        for (id, interaction) in interactions.read().await.iter() {
-                            if id.to_string() == json.get("id").unwrap().to_string() {
-                                let mut data_interaction = interaction.clone();
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
                             }
-                        }
+                            tokio::time::sleep(Duration::from_millis(400)).await;
 
-                        return Ok(warp::reply::with_status(warp::reply::json(&json!({
+                            for (id, interaction) in interactions.read().await.iter() {
+                                if id.to_string() == json.get("id").unwrap().to_string() {
+                                    let mut data_interaction = interaction.clone();
+                                    return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
+                                }
+                            }
+
+                            return Ok(warp::reply::with_status(warp::reply::json(&json!({
                                     "type": 5,
                                      "components": [
                                         {
@@ -170,20 +173,22 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                         }
                                     ]
                                 }).as_object_mut()), warp::http::StatusCode::OK));
+                        }
                     }
                 }
+
+
+
+                return Ok(
+                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 200, "message": "Interaction unknown or not recognized", "error": false, "code_error": "HTTP_INTERACTION_UNKNOWN" }).as_object_mut()), warp::http::StatusCode::INTERNAL_SERVER_ERROR)
+                );
             }
-
-
-
-            Ok(
-                warp::reply::with_status(warp::reply::json(&json!({ "status_code": 200, "message": "Interaction unknown or not recognized", "error": false, "code_error": "HTTP_INTERACTION_UNKNOWN" }).as_object_mut()), warp::http::StatusCode::INTERNAL_SERVER_ERROR)
-            )
-        }
-        false => {
-            Ok(
-                warp::reply::with_status(warp::reply::json(&json!({ "status_code": 401, "message": "Uh! It appears that this signature or metadata is incorrect. Check it out: https://discord.com/developers/docs/interactions/receiving-and-responding", "error": true, "code": "HTTP_UNAUTHORIZED" }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
-            )
+            false => {
+                return Ok(
+                    warp::reply::with_status(warp::reply::json(&json!({ "status_code": 401, "message": "Uh! It appears that this signature or metadata is incorrect. Check it out: https://discord.com/developers/docs/interactions/receiving-and-responding", "error": true, "code": "HTTP_UNAUTHORIZED" }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
+                );
+            }
         }
     }
+    Ok(warp::reply::with_status(warp::reply::json(&json!({ "status_code": 401, "message": "How strange, how are we going to open the door?", "error": true, "code": "HTTP_UNAUTHORIZED" }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED))
 }

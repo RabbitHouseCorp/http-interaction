@@ -19,3 +19,4 @@ configuration.yaml
 .idea
 target
 Cargo.lock
+.env
