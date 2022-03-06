@@ -122,16 +122,8 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                    "allowed_mentions": []
                             } }).as_object_mut()), warp::http::StatusCode::OK));
                         }
-                        tokio::time::sleep(Duration::from_millis(400)).await;
-
-                        for (id, interaction) in interactions.read().await.iter() {
-                            if id.to_string() == json.get("id").unwrap().to_string() {
-                                let mut data_interaction = interaction.clone();
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
-                            }
-                        }
-
-                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5 }).as_object_mut()), warp::http::StatusCode::OK));
+                     
+                        return Ok(warp::reply::with_status(warp::reply::json(&json!({ }).as_object_mut()), warp::http::StatusCode::OK));
                     }
                 }
             }
