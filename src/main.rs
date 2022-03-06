@@ -62,11 +62,13 @@ pub struct KrakenConnectionData {
 struct DiscordData {}
 
 // HTTP
-const HTTP_INTERACTION_CONFIRMATION_BOT: u64 = 1;
+const interaction_ping: u64 = 1;
 
 // Interaction UI
-const INTERACTION_COMMAND: u64 = 2;
-const INTERACTION_BUTTON: u64 = 3;
+const interaction_command: u64 = 2;
+const interaction_button: u64 = 3;
+const interaction_autocomplete : u64 = 4;
+const interaction_modal_submit: u64 = 4;
 
 async fn get_data() {}
 
@@ -122,7 +124,9 @@ async fn main() {
                 .or(create_interaction)
         )
         .recover(error_api)
-        .with(warp::trace::request());
+        .with(warp::trace::request())
+        .with(warp::cors());
+
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }
 

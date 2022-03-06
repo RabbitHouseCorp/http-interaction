@@ -10,12 +10,15 @@ use serde_json::{json, Value};
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use crate::{ClientBot, Clients, Interaction, Interactions, TryFutureExt};
+use std::io;
 use std::io::prelude::*;
 use std::sync::Arc;
 use ed25519_dalek::{SecretKey, Sha512, SignatureError};
 use flate2::Compression;
+use flate2::read::{GzDecoder, ZlibDecoder};
 use flate2::write::ZlibEncoder;
 use rustc_serialize::json;
+use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument::WithSubscriber;
 use warp::body::json;
@@ -127,19 +130,34 @@ pub fn txclient(client: &SplitSink<WebSocket, Message>) -> &SplitSink<WebSocket,
 }
 
 pub fn convert_to_binary(inf: &Value) -> Vec<u8> {
-    let mut data = ZlibEncoder::new(Vec::new(), Compression::default());
+    let mut data = ZlibEncoder::new(Vec::new(), Compression::new(10));
     data.write_all(inf.to_string().as_ref());
     return data.finish().unwrap()
 }
 
+pub async fn read_compress(b: &[u8]) -> io::Result<String> {
+    let mut a = GzDecoder::new(&*b);
+    let mut s = String::new();
+    a.read_to_string(&mut s).unwrap();
+    Ok(s.to_string())
+}
+
 async fn message_interface(message: Message, mut x: &UnboundedSender<Message>, id: String, mut client: Clients, arc: Arc<RwLock<HashMap<String, Interaction>>>) {
     let tx = x;
-    let message = if let Ok(a) = message.to_str()
-    { a } else { return; };
-    if message == "" {
+    // let message = if let Ok(bytes) = message
+    // {
+    //     bytes
+    // } else { return; };
+    // if message == "" {
+    //     return;
+    // }
+    // println!("{}", message.to_string());
+    let mut data_compress = read_compress(message.as_bytes()).await;
+    if data_compress.is_err() == true {
         return;
     }
-    let data: Value = serde_json::from_str(&message.to_string().as_str()).unwrap();
+    let data = serde_json::from_str(&data_compress.unwrap().as_str());
+    let json_data: Value = data.unwrap();
 
-    load_commands(data, tx, client.borrow_mut(), id.clone(), arc.clone()).await;
+    load_commands(json_data, tx, client.borrow_mut(), id.clone(), arc.clone()).await;
 }

@@ -18,6 +18,7 @@ use crate::{ClientBot, Clients, Interaction};
 use crate::routes::websocket::websocket_server::{convert_to_binary, send_metadata};
 
 pub async fn load_commands(data: Value, mut tx: &UnboundedSender<Message>, clients: &mut Clients, id: String, interactions: Arc<RwLock<HashMap<String, Interaction>>>) {
+
     let type_command_is_none= data["type"].as_u64().is_none();
     if type_command_is_none {
         return;
