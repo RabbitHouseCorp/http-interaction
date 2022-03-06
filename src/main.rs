@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate dotenv;
 
 use std::collections::HashMap;
@@ -21,9 +20,10 @@ use tokio::sync::{mpsc, RwLock};
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::ws::{Message, WebSocket, Ws};
 use crate::routes::websocket::websocket_server::{websocket_message};
-use futures::{StreamExt, TryFutureExt};
+use futures::{SinkExt, StreamExt, TryFutureExt, TryStreamExt};
 use futures::FutureExt;
 use rustc_serialize::json::ToJson;
+use tracing_subscriber::filter::FilterExt;
 use crate::routes::websocket::structures::client::ClientBot;
 
 mod structures;
@@ -71,7 +71,7 @@ async fn get_data() {}
 
 
 #[tokio::main]
-async fn main()  {
+async fn main() {
     dotenv().ok(); // Load env
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
     let mut clients = Clients::default();
@@ -95,7 +95,7 @@ async fn main()  {
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
         .and(clients.clone())
-        .map(|sign: String, timestamp: String, json: HashMap<String, Value>, clients| { interaction_create(sign, timestamp, json, clients) });
+        .and_then(interaction_create);
     let websocket_support = warp::path("ws_interaction")
         .and(warp::ws())
         .and(warp::header::header("Identification-Id"))
@@ -103,7 +103,7 @@ async fn main()  {
         .and(warp::header::header("Shard-In"))
         .and(warp::header::header("Shard-Total"))
         .and(clients.clone())
-        .map(|ws: Ws, id: String, secret: String, shard_in: String, shard_total: String,  clients | {
+        .map(|ws: Ws, id: String, secret: String, shard_in: String, shard_total: String, clients | {
             if id != "" { warp::reject::reject(); }
             if secret != "bG9sISEhIQ" { warp::reject::reject(); }
 
@@ -118,7 +118,7 @@ async fn main()  {
         )
         .recover(error_api)
         .with(warp::trace::request());
-    warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }
 
 #[derive(Debug)]

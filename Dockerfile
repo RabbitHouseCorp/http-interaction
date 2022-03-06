@@ -6,7 +6,7 @@ COPY . .
 
 RUN cargo build
 
+EXPOSE 8080
 CMD ["cargo", "run"]
 
 
-EXPOSE 3030
