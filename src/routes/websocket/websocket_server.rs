@@ -7,10 +7,11 @@ use futures::{SinkExt, StreamExt};
 use futures::FutureExt;
 use futures::stream::{SplitSink, SplitStream};
 use serde_json::{json, Value};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use crate::{ClientBot, Clients, TryFutureExt};
+use crate::{ClientBot, Clients, Interaction, Interactions, TryFutureExt};
 use std::io::prelude::*;
+use std::sync::Arc;
 use ed25519_dalek::{SecretKey, Sha512, SignatureError};
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
@@ -23,7 +24,7 @@ use crate::cryptography::encode::encode_data;
 use crate::routes::websocket::commands::handler::load_commands;
 use crate::routes::websocket::structures::client::ClientWs;
 
-pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize) {
+pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize, mut interactions: Interactions) {
     let (mut tx_client, mut rx_client) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
     let mut rx = UnboundedReceiverStream::new(rx);
@@ -93,10 +94,15 @@ pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, 
                 break;
             }
         };
-        message_interface(msg, &a, id.clone(), clients.clone());
+        message_interface(msg, &a, id.clone(), clients.clone(), interactions.clone()).await;
     }
+    bot_disconnected(clients.clone(), id.clone()).await;
 }
 
+
+async fn bot_disconnected(mut client: Clients, id: String) {
+    client.write().await.remove(&*id.as_str().to_string());
+}
 
 fn move_value(tx_client: SplitSink<WebSocket, Message>) -> SplitSink<WebSocket, Message> {
     let mut muttx = tx_client;
@@ -126,15 +132,14 @@ pub fn convert_to_binary(inf: &Value) -> Vec<u8> {
     return data.finish().unwrap()
 }
 
-fn message_interface(message: Message, mut x: &UnboundedSender<Message>, id: String, mut client: Clients) {
+async fn message_interface(message: Message, mut x: &UnboundedSender<Message>, id: String, mut client: Clients, arc: Arc<RwLock<HashMap<String, Interaction>>>) {
     let tx = x;
     let message = if let Ok(a) = message.to_str()
     { a } else { return; };
     if message == "" {
         return;
     }
+    let data: Value = serde_json::from_str(&message.to_string().as_str()).unwrap();
 
-    let data: Value = serde_json::from_str(&message.to_string()).unwrap();
-
-    load_commands(data, tx, client.borrow_mut(), id.clone());
+    load_commands(data, tx, client.borrow_mut(), id.clone(), arc.clone()).await;
 }

@@ -24,7 +24,7 @@ use futures::{SinkExt, StreamExt, TryFutureExt, TryStreamExt};
 use futures::FutureExt;
 use rustc_serialize::json::ToJson;
 use tracing_subscriber::filter::FilterExt;
-use crate::routes::websocket::structures::client::ClientBot;
+use crate::routes::websocket::structures::client::{ClientBot, Interaction};
 
 mod structures;
 mod gateway;
@@ -33,6 +33,7 @@ mod cryptography;
 mod routes;
 
 type Clients = Arc<RwLock<HashMap<String, ClientBot>>>;
+type Interactions = Arc<RwLock<HashMap<String, Interaction>>>;
 
 #[derive(Serialize)]
 struct ErrorMessage {
@@ -75,11 +76,13 @@ async fn main() {
     dotenv().ok(); // Load env
     let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
     let mut clients = Clients::default();
+    let mut interactions = Interactions::default();
     tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
         .init();
 
     let clients = warp::any().map(move || clients.clone());
+    let interactions = warp::any().map(move || interactions.clone());
 
     let token_secret = "dotenv!('PASSWORD_SECRET').unwrap()";
 
@@ -95,6 +98,7 @@ async fn main() {
         .and(warp::body::content_length_limit(1024 * 900))
         .and(warp::body::json())
         .and(clients.clone())
+        .and(interactions.clone())
         .and_then(interaction_create);
     let websocket_support = warp::path("ws_interaction")
         .and(warp::ws())
@@ -103,18 +107,19 @@ async fn main() {
         .and(warp::header::header("Shard-In"))
         .and(warp::header::header("Shard-Total"))
         .and(clients.clone())
-        .map(|ws: Ws, id: String, secret: String, shard_in: String, shard_total: String, clients | {
+        .and(interactions.clone())
+        .map(|ws: Ws, id: String, secret: String, shard_in: String, shard_total: String, clients, interactions | {
             if id != "" { warp::reject::reject(); }
             if secret != "bG9sISEhIQ" { warp::reject::reject(); }
 
-            ws.on_upgrade(move |socket| websocket_message(socket, clients, id, secret, shard_in.parse().unwrap(), shard_total.parse().unwrap()))
+            ws.on_upgrade(move |socket| websocket_message(socket, clients, id, secret, shard_in.parse().unwrap(), shard_total.parse().unwrap(), interactions))
 
         });
     let routes = warp::any()
         .and(
             extern_api
-                .or(create_interaction)
                 .or(websocket_support)
+                .or(create_interaction)
         )
         .recover(error_api)
         .with(warp::trace::request());
