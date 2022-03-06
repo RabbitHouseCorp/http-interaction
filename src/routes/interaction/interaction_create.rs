@@ -68,7 +68,7 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
 
             if type_int == INTERACTION_BUTTON {
                 println!("Confirmando o botão...");
-                Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
+                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
                                 "tts": false,
 								"content": "There was a problem with the interaction!",
                                 "embeds": [
@@ -78,7 +78,7 @@ pub async fn interaction_create(sign: String, timestamp: String, json: HashMap<S
                                     }
                                 ],
                                 "allowed_mentions": []
-                    } }).as_object_mut()), warp::http::StatusCode::OK));
+                    } }).as_object_mut()), warp::http::StatusCode::OK))
             }
 
             Ok(
