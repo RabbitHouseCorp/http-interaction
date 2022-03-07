@@ -29,15 +29,24 @@ use crate::routes::websocket::structures::client::ClientWs;
 
 pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, secret: String, shard_in: usize, shard_total: usize, mut interactions: Interactions, x: (String, String, String, String)) {
     let (pub_key, secret_key, pub_key_discord, bot_discord) = x;
-    if secret_key.find(&secret.clone()).is_none() {
-        ws.close();
-        return;
+    let mut check = 0;
+    if secret_key.as_str() == secret {
+        check += 1
     }
-    if pub_key_discord.find(&pub_key.clone()).is_none() {
-        ws.close();
-        return;
+    let mut keys = pub_key.split(" ");
+    for key in keys {
+        if pub_key_discord.to_string() == key.to_string() {
+            check += 1
+        }
     }
-    if bot_discord.find(&id.clone()).is_none()   {
+    let mut keys_bot = pub_key.split(" ");
+    for key in keys_bot {
+        if bot_discord.to_string() == id.to_string() {
+            check += 2
+        }
+    }
+    println!("{}", check);
+    if (check > 3) == false {
         ws.close();
         return;
     }

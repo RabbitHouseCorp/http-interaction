@@ -1,3 +1,9 @@
+*.env
+.idea
+target
+Cargo.lock
+.env
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -10,13 +16,3 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-configuration.yml
-configuration.yaml
-
-.idea
-target
-Cargo.lock
-.env
