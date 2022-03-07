@@ -68,7 +68,7 @@ const interaction_ping: u64 = 1;
 const interaction_command: u64 = 2;
 const interaction_button: u64 = 3;
 const interaction_autocomplete : u64 = 4;
-const interaction_modal_submit: u64 = 4;
+const interaction_modal_submit: u64 = 5;
 
 async fn get_data() {}
 
@@ -85,9 +85,7 @@ async fn main() {
 
     let clients = warp::any().map(move || clients.clone());
     let interactions = warp::any().map(move || interactions.clone());
-    let pub_key = warp::any().map(move || env::var("BOTS_DISCORD").unwrap());
-
-    let token_secret = "dotenv!('PASSWORD_SECRET').unwrap()";
+    let pub_key = warp::any().map(move || env::var("PUBLIC_KEY").unwrap().clone());
 
     let extern_api = warp::path::end().map(|| {
         warp::reply::json(

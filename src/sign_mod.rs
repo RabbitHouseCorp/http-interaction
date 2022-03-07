@@ -42,7 +42,7 @@ pub fn verify_authorization(pub_key: String, sign: String, message: String) -> b
         return false; }
     let signature = ed25519_dalek::Signature::from_bytes(&hex_signature.unwrap());
     if signature.is_err() {
-        eprintln!("err -> Err: signature");
+        // eprintln!("err -> Err: signature");
         return false; }
     let ok = public_key.unwrap().verify(message.as_bytes(), &signature.unwrap());
     if ok.is_err() {

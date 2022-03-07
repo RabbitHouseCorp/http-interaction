@@ -45,7 +45,7 @@ pub async fn websocket_message(ws: WebSocket, mut clients: Clients, id: String, 
             check += 2
         }
     }
-    println!("{}", check);
+
     if (check > 3) == false {
         ws.close();
         return;
