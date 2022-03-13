@@ -13,7 +13,9 @@ pub struct ClientWs {
 }
 
 impl ClientBot {
+    #[allow(dead_code)]
     fn update_id(&self) -> &String { &self.ws._id }
+    #[allow(dead_code)]
     fn update_tx(&self) -> &UnboundedSender<Message> { &self.ws.tx }
 }
 
