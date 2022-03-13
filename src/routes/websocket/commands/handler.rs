@@ -1,23 +1,14 @@
-use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
-use std::io::Read;
 use std::sync::Arc;
-use std::thread;
 use std::time::Duration;
-use futures::sink::Close;
-use futures::SinkExt;
-use futures::stream::{SplitSink, SplitStream};
-use rand::distributions::uniform::SampleBorrow;
-use serde::Deserializer;
 use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
-use warp::body::json;
-use warp::ws::{Message, WebSocket};
-use crate::{ClientBot, Clients, Interaction};
-use crate::routes::websocket::websocket_server::{convert_to_binary, send_metadata};
+use warp::ws::{Message};
+use crate::{Clients, Interaction};
+use crate::routes::websocket::websocket_server::{convert_to_binary};
 
-pub async fn load_commands(data: Value, mut tx: &UnboundedSender<Message>, clients: &mut Clients, id: String, interactions: Arc<RwLock<HashMap<String, Interaction>>>) {
+pub async fn load_commands(data: Value, tx: &UnboundedSender<Message>, _clients: &mut Clients, id: String, interactions: Arc<RwLock<HashMap<String, Interaction>>>) {
 
     let type_command_is_none= data["type"].as_u64().is_none();
     if type_command_is_none {

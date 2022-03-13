@@ -3,26 +3,17 @@ extern crate dotenv;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use dotenv::dotenv;
-use std::{env, result};
-use std::borrow::Borrow;
+use std::{env};
 use std::error::Error;
 use std::sync::Arc;
-use serde::{Serialize, Deserialize};
-use serde_json::{Value, json};
-use tracing::{span, Level};
+use serde::{Serialize};
+use serde_json::{json};
+use tracing::{Level};
 use warp::{Filter, Rejection, Reply, hyper::StatusCode};
-use crossbeam::sync::WaitGroup;
-use futures::task::Spawn;
 use crate::routes::interaction::interaction_create::interaction_create;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::{mpsc, RwLock};
-use tracing_subscriber::fmt::format::FmtSpan;
-use warp::ws::{Message, WebSocket, Ws};
+use tokio::sync::{RwLock};
+use warp::ws::{Ws};
 use crate::routes::websocket::websocket_server::{websocket_message};
-use futures::{SinkExt, StreamExt, TryFutureExt, TryStreamExt};
-use futures::FutureExt;
-use rustc_serialize::json::ToJson;
-use tracing_subscriber::filter::FilterExt;
 use crate::routes::websocket::structures::client::{ClientBot, Interaction};
 
 
@@ -40,27 +31,23 @@ struct ErrorMessage {
     message: String,
     error: bool
 }
-struct ResponseData {
-    status_code: u64,
-}
 
 // HTTP
-const interaction_ping: u64 = 1;
+const INTERACTION_PING: u64 = 1;
 
 // Interaction UI
-const interaction_command: u64 = 2;
-const interaction_button: u64 = 3;
-const interaction_autocomplete : u64 = 4;
-const interaction_modal_submit: u64 = 5;
-
+const INTERACTION_COMMAND: u64 = 2;
+const INTERACTION_BUTTON: u64 = 3;
+const INTERACTION_AUTOCOMPLETE: u64 = 4;
+const INTERACTION_MODAL_SUBMIT: u64 = 5;
 
 
 #[tokio::main]
 async fn main() {
+
     dotenv().ok(); // Load env
-    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "tracing=info,warp=debug".to_owned());
-    let mut clients = Clients::default();
-    let mut interactions = Interactions::default();
+    let clients = Clients::default();
+    let interactions = Interactions::default();
     tracing_subscriber::fmt()
         .with_max_level(Level::WARN)
         .init();
@@ -98,6 +85,9 @@ async fn main() {
                                                           interactions, (pub_key_a, env::var("KEY_SECRET").unwrap(), env::var("PUBLIC_KEY").unwrap(), env::var("BOTS_DISCORD").unwrap())))
 
         });
+
+
+
     let routes = warp::any()
         .and(
             extern_api
@@ -105,8 +95,7 @@ async fn main() {
                 .or(create_interaction)
         )
         .recover(error_api)
-        .with(warp::trace::request())
-        .with(warp::cors());
+        .with(warp::trace::request());
 
     warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
 }
@@ -124,7 +113,7 @@ async fn error_api(err: Rejection) -> Result<impl Reply, Infallible> {
         message = "Could not find route";
         code = StatusCode::NOT_FOUND;
         code_msg = "NOT_FOUND";
-    } else if let Some(_DivideByZero) = err.find::<Nope>() {
+    } else if let Some(_divide_by_zero) = err.find::<Nope>() {
         code = StatusCode::BAD_REQUEST;
         message = "It was not possible to make your request in the API.";
         code_msg = "BAD_REQUEST_API";

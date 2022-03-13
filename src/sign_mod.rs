@@ -4,7 +4,6 @@
 
 extern crate ed25519_dalek;
 use self::ed25519_dalek::{PublicKey, Verifier};
-use self::ed25519_dalek::ed25519::signature::Signature;
 
 
 pub fn verify_authorization(pub_key: String, sign: String, message: String) -> bool {

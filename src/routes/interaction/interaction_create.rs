@@ -2,33 +2,26 @@ extern crate warp;
 extern crate dotenv;
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::sync::Arc;
 use std::time::Duration;
-use aes_gcm::aead::generic_array::typenum::And;
-use crossbeam::sync::WaitGroup;
-use serde_json::{json, Map, Value};
-use tokio::sync::RwLock;
-use warp::{Filter, Rejection};
-use warp::path::Exact;
-use warp::reply::{Json, WithStatus};
+use serde_json::{json, Value};
 use warp::ws::Message;
-use crate::{ClientBot, Clients, interaction_autocomplete, interaction_button, interaction_command, interaction_modal_submit, interaction_ping, Interactions, sign_mod};
+use crate::{Clients, INTERACTION_AUTOCOMPLETE, INTERACTION_BUTTON, INTERACTION_COMMAND, INTERACTION_MODAL_SUBMIT, INTERACTION_PING, Interactions, sign_mod};
 use crate::routes::websocket::websocket_server::convert_to_binary;
 
-// WithStatus<Json>
+
 pub async fn interaction_create(pub_key: String, sign: String, timestamp: String, json: HashMap<String, Value>, clients: Clients, interactions: Interactions) -> Result<impl warp::Reply, Infallible>
 {
-    let mut keys_with_space = pub_key.split(" ");
+    let keys_with_space = pub_key.split(" ");
     for key in keys_with_space {
         let verify_sign = sign_mod::verify_authorization(String::from(dotenv::var("PUBLIC_KEY").unwrap()), sign, format!("{}{}", timestamp, json!(json)));
         match verify_sign {
             true => {
                 let type_interaction: &Value = json.get("type").unwrap();
                 let type_int = type_interaction.as_u64().unwrap();
-                if type_int == interaction_ping {
+                if type_int == INTERACTION_PING {
                     return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 1 }).as_object_mut()), warp::http::StatusCode::OK));
                 }
-                if type_int == interaction_command {
+                if type_int == INTERACTION_COMMAND {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
                     }
@@ -71,7 +64,7 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
 
                 }
 
-                if type_int == interaction_button {
+                if type_int == INTERACTION_BUTTON {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
                     }
@@ -95,7 +88,7 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
 
                             for (id, interaction) in interactions.read().await.iter() {
                                 if id.to_string() == json.get("id").unwrap().to_string() {
-                                    let mut data_interaction = interaction.clone();
+                                    let data_interaction = interaction.clone();
                                     return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
                                 }
                             }
@@ -105,7 +98,7 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
                     }
                 }
 
-                if type_int == interaction_autocomplete {
+                if type_int == INTERACTION_AUTOCOMPLETE {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
                     }
@@ -131,7 +124,7 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
                     }
                 }
 
-                if type_int == interaction_modal_submit {
+                if type_int == INTERACTION_MODAL_SUBMIT {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE))
                     }
@@ -155,7 +148,7 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
 
                             for (id, interaction) in interactions.read().await.iter() {
                                 if id.to_string() == json.get("id").unwrap().to_string() {
-                                    let mut data_interaction = interaction.clone();
+                                    let data_interaction = interaction.clone();
                                     return Ok(warp::reply::with_status(warp::reply::json(&json!(data_interaction.data).as_object_mut()), warp::http::StatusCode::OK));
                                 }
                             }
