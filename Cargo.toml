@@ -1,19 +1,16 @@
 [package]
 name = "httpinteraction"
+description = "An API that interacts with the Discord API and receives interactions through it."
+authors = ["RabbitHouseCorp"]
+homepage = "https://github.com/RabbitHouseCorp"
 version = "0.2.1"
 edition = "2021"
 rust-version = "1.59"
 
-[workspace]
-edition = "2021"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-yaml-rust = "0.4.5"
 tokio = { version = "1.12.0", features = ["full"] }
 tokio-stream = "0.1.8"
 tower = { version = "0.3.1", features = [ "log", "full" ] }
-clap = { version = "3.1.6", features = ["derive"] }
 flate2 = "1.0.22"
 rand = "0.7"
 derive_more = "0.99.17"
@@ -22,7 +19,7 @@ tokio-core = "0.1.18"
 async-stream = "0.3.2"
 bytes = "1.1.0"
 mio = "0.8.0"
-warp = { version = "0.3.2", features = ["compression", "compression-brotli", "default"]}
+warp = { version = "0.3.2", features = ["compression", "compression-brotli", "default"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_derive = "1.0.136"
 dotenv = "0.15.0"
