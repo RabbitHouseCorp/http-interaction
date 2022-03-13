@@ -29,17 +29,18 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
                         if json.get("application_id").unwrap() == id {
                             if let Err(_disconnected) =  client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
 
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
-                                "tts": false,
-								"content": "There was a problem with the interaction!",
-                                "embeds": [
-                                    {
-                                        "color":       "#ff1212",
-                                        "description": "The connection was lost by the bot. Contact bot developer."
-                                    }
-                                ],
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({
+                                    "type": 4,
+                                    "tts": false,
+                                    "content": "There was a problem with the interaction!",
+                                    "embeds": [
+                                        {
+                                            "color":       "#ff1212",
+                                            "description": "The connection was lost by the bot. Contact bot developer."
+                                        }
+                                    ],
                                    "allowed_mentions": []
-                            } }).as_object_mut()), warp::http::StatusCode::OK));
+                                }).as_object_mut()), warp::http::StatusCode::OK));
 
                                 break;
                             }
@@ -50,17 +51,18 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
 
                     eprintln!("Application offline");
 
-                    return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
-                                "tts": false,
-								"content": "There was a problem with the interaction!",
-                                "embeds": [
-                                    {
-                                        "color":       "#ff1212",
-                                        "description": "I didn't get a response from the bot, try again or you can contact the developer through the support server."
-                                    }
-                                ],
-                                "allowed_mentions": []
-                    } }).as_object_mut()), warp::http::StatusCode::OK))
+                    return Ok(warp::reply::with_status(warp::reply::json(&json!({
+                        "type": 4,
+                        "tts": false,
+                        "content": "There was a problem with the interaction!",
+                        "embeds": [
+                            {
+                                "color":       "#ff1212",
+                                "description": "I didn't get a response from the bot, try again or you can contact the developer through the support server."
+                            }
+                        ],
+                        "allowed_mentions": []
+                    }).as_object_mut()), warp::http::StatusCode::OK))
 
                 }
 
@@ -72,17 +74,18 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
                     for (id, client) in clients.read().await.iter() {
                         if json.get("application_id").unwrap() == id {
                             if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
-                                "tts": false,
-								"content": "There was a problem with the interaction!",
-                                "embeds": [
-                                    {
-                                        "color":       "#ff1212",
-                                        "description": "The connection was lost by the bot. Contact bot developer."
-                                    }
-                                ],
-                                   "allowed_mentions": []
-                            } }).as_object_mut()), warp::http::StatusCode::OK));
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({
+                                    "type": 4,
+                                    "tts": false,
+								    "content": "There was a problem with the interaction!",
+                                    "embeds": [
+                                        {
+                                            "color":       "#ff1212",
+                                            "description": "The connection was lost by the bot. Contact bot developer."
+                                        }
+                                    ],
+                                    "allowed_mentions": []
+                                }).as_object_mut()), warp::http::StatusCode::OK));
                             }
                             tokio::time::sleep(Duration::from_millis(400)).await;
 
@@ -106,17 +109,18 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
                     for (id, client) in clients.read().await.iter() {
                         if json.get("application_id").unwrap() == id {
                             if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
-                                "tts": false,
-								"content": "There was a problem with the interaction!",
-                                "embeds": [
-                                    {
-                                        "color":       "#ff1212",
-                                        "description": "The connection was lost by the bot. Contact bot developer."
-                                    }
-                                ],
-                                   "allowed_mentions": []
-                            } }).as_object_mut()), warp::http::StatusCode::OK));
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({
+                                    "type": 4,
+                                    "tts": false,
+								    "content": "There was a problem with the interaction!",
+                                    "embeds": [
+                                        {
+                                            "color":       "#ff1212",
+                                            "description": "The connection was lost by the bot. Contact bot developer."
+                                        }
+                                    ],
+                                    "allowed_mentions": []
+                                }).as_object_mut()), warp::http::StatusCode::OK));
                             }
 
                             return Ok(warp::reply::with_status(warp::reply::json(&json!({ }).as_object_mut()), warp::http::StatusCode::OK));
@@ -132,17 +136,18 @@ pub async fn interaction_create(pub_key: String, sign: String, timestamp: String
                     for (id, client) in clients.read().await.iter() {
                         if json.get("application_id").unwrap() == id {
                             if let Err(_disconnected) = client.ws.tx.send(Message::binary(convert_to_binary(&json!(json)))) {
-                                return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 4, "data": {
-                                "tts": false,
-								"content": "There was a problem with the interaction!",
-                                "embeds": [
-                                    {
-                                        "color":       "#ff1212",
-                                        "description": "The connection was lost by the bot. Contact bot developer."
-                                    }
-                                ],
-                                   "allowed_mentions": []
-                            } }).as_object_mut()), warp::http::StatusCode::OK));
+                                return Ok(warp::reply::with_status(warp::reply::json(&json!({
+                                    "type": 4,
+                                    "tts": false,
+								    "content": "There was a problem with the interaction!",
+                                    "embeds": [
+                                        {
+                                            "color":       "#ff1212",
+                                            "description": "The connection was lost by the bot. Contact bot developer."
+                                        }
+                                    ],
+                                    "allowed_mentions": []
+                                }).as_object_mut()), warp::http::StatusCode::OK));
                             }
                             tokio::time::sleep(Duration::from_millis(400)).await;
 
