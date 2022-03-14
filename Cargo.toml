@@ -10,7 +10,7 @@ rust-version = "1.59"
 [dependencies]
 tokio = { version = "1.12.0", features = ["full"] }
 tokio-stream = "0.1.8"
-tower = { version = "0.3.1", features = [ "log", "full" ] }
+tower = { version = "0.4.12", features = [ "log", "full" ] }
 flate2 = "1.0.22"
 rand = "0.7"
 derive_more = "0.99.17"
