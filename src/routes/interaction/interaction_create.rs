@@ -28,7 +28,7 @@ pub async fn interaction_create(
             sign,
             format!("{}{}", timestamp, json!(json)),
         );
-        return match verify_sign {
+        match verify_sign {
             true => {
                 let type_interaction: &Value = json.get("type").unwrap();
                 let type_int = type_interaction.as_u64().unwrap();
@@ -71,7 +71,7 @@ pub async fn interaction_create(
                             }
                             let get_shard = find_shard.unwrap();
                             if let Err(_disconnected) =
-                            send_message_interaction(get_shard, (FLAG_INTERACTION_COMMAND, &json!(json), shard_id, client.ws.shard_total)).await
+                                 send_message_interaction(get_shard, (FLAG_INTERACTION_COMMAND, &json!(json), shard_id, client.ws.shard_total)).await
                             {
                                 return Ok(warp::reply::with_status(warp::reply::json(&json!({
                                     "type": 4,
@@ -87,7 +87,7 @@ pub async fn interaction_create(
                                        "allowed_mentions": []
                                     }
                                 }).as_object_mut()), warp::http::StatusCode::OK));
-                            
+
                                 break;
                             }
                             return Ok(warp::reply::with_status(
@@ -96,10 +96,10 @@ pub async fn interaction_create(
                             ));
                         }
                     }
-                
+
                     warn!("Application offline=[ application_id={}, interaction_id={}, type_interaction={} ]",
                         json.get("application_id").unwrap().to_string(), json.get("id").unwrap().to_string(), INTERACTION_COMMAND);
-                
+
                     return Ok(warp::reply::with_status(warp::reply::json(&json!({
                         "type": 4,
                         "data": {
@@ -115,12 +115,12 @@ pub async fn interaction_create(
                         }
                     }).as_object_mut()), warp::http::StatusCode::OK));
                 }
-            
+
                 if type_int == INTERACTION_BUTTON {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE));
                     }
-                
+
                     for (id, client) in clients.read().await.iter() {
                         if json.get("application_id").unwrap() == id {
                             let shard_id = search_shard(
@@ -129,6 +129,7 @@ pub async fn interaction_create(
                             );
                             let find_shard = client.ws.shards.get(&shard_id.clone());
                             if find_shard.is_none() {
+    
                                 warn!("Shard offline=[ application_id={}, interaction_id={}, type_interaction={} shard_id={} ]",
                         json.get("application_id").unwrap().to_string(), json.get("id").unwrap().to_string(), INTERACTION_BUTTON, shard_id.clone());
                                 return Ok(warp::reply::with_status(warp::reply::json(&json!({
@@ -148,7 +149,7 @@ pub async fn interaction_create(
                             }
                             let get_shard = find_shard.unwrap();
                             if let Err(_disconnected) =
-                            send_message_interaction(get_shard, (FLAG_INTERACTION_BUTTON, &json!(json), shard_id, client.ws.shard_total)).await
+                                send_message_interaction(get_shard, (FLAG_INTERACTION_BUTTON, &json!(json), shard_id, client.ws.shard_total)).await
                             {
                                 return Ok(warp::reply::with_status(warp::reply::json(&json!({
                                     "type": 4,
@@ -166,7 +167,7 @@ pub async fn interaction_create(
                                 }).as_object_mut()), warp::http::StatusCode::OK));
                             }
                             tokio::time::sleep(Duration::from_millis(400)).await;
-                        
+
                             for (id, interaction) in interactions.read().await.iter() {
                                 if id.to_string() == json.get("id").unwrap().to_string() {
                                     let data_interaction = interaction.clone();
@@ -178,7 +179,7 @@ pub async fn interaction_create(
                                     ));
                                 }
                             }
-                        
+
                             return Ok(warp::reply::with_status(
                                 warp::reply::json(&json!({ "type": 5 }).as_object_mut()),
                                 warp::http::StatusCode::OK,
@@ -186,12 +187,12 @@ pub async fn interaction_create(
                         }
                     }
                 }
-            
+
                 if type_int == INTERACTION_AUTOCOMPLETE {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE));
                     }
-                
+
                     for (id, client) in clients.read().await.iter() {
                         if json.get("application_id").unwrap() == id {
                             let shard_id = search_shard(
@@ -219,7 +220,7 @@ pub async fn interaction_create(
                             }
                             let get_shard = find_shard.unwrap();
                             if let Err(_disconnected) =
-                            send_message_interaction(get_shard, (FLAG_INTERACTION_BUTTON, &json!(json), shard_id, client.ws.shard_total)).await
+                                send_message_interaction(get_shard, (FLAG_INTERACTION_BUTTON, &json!(json), shard_id, client.ws.shard_total)).await
                             {
                                 return Ok(warp::reply::with_status(warp::reply::json(&json!({
                                     "type": 4,
@@ -236,7 +237,7 @@ pub async fn interaction_create(
                                     }
                                 }).as_object_mut()), warp::http::StatusCode::OK));
                             }
-                        
+
                             return Ok(warp::reply::with_status(
                                 warp::reply::json(&json!({}).as_object_mut()),
                                 warp::http::StatusCode::OK,
@@ -244,12 +245,12 @@ pub async fn interaction_create(
                         }
                     }
                 }
-            
+
                 if type_int == INTERACTION_MODAL_SUBMIT {
                     if json.get("application_id").is_none() {
                         return Ok(warp::reply::with_status(warp::reply::json(&json!({ "type": 5, "message_err": "API cannot accept this metadata because application was not included! Please resend again." }).as_object_mut()), warp::http::StatusCode::NOT_ACCEPTABLE));
                     }
-                
+
                     for (id, client) in clients.read().await.iter() {
                         if json.get("application_id").unwrap() == id {
                             let shard_id = search_shard(
@@ -275,7 +276,7 @@ pub async fn interaction_create(
                             }
                             let get_shard = find_shard.unwrap();
                             if let Err(_disconnected) =
-                            send_message_interaction(get_shard, (FLAG_INTERACTION_MODAL_SUBMIT, &json!(json), shard_id, client.ws.shard_total)).await
+                              send_message_interaction(get_shard, (FLAG_INTERACTION_MODAL_SUBMIT, &json!(json), shard_id, client.ws.shard_total)).await
                             {
                                 return Ok(warp::reply::with_status(warp::reply::json(&json!({
                                     "type": 4,
@@ -293,7 +294,7 @@ pub async fn interaction_create(
                                 }).as_object_mut()), warp::http::StatusCode::OK));
                             }
                             tokio::time::sleep(Duration::from_millis(400)).await;
-                        
+
                             for (id, interaction) in interactions.read().await.iter() {
                                 if id.to_string() == json.get("id").unwrap().to_string() {
                                     let data_interaction = interaction.clone();
@@ -305,7 +306,7 @@ pub async fn interaction_create(
                                     ));
                                 }
                             }
-                        
+
                             return Ok(warp::reply::with_status(
                                 warp::reply::json(
                                     &json!({
@@ -321,23 +322,23 @@ pub async fn interaction_create(
                                             }
                                         ]
                                     })
-                                        .as_object_mut(),
+                                    .as_object_mut(),
                                 ),
                                 warp::http::StatusCode::OK,
                             ));
                         }
                     }
                 }
-            
-                Ok(
+
+                return Ok(
                     warp::reply::with_status(warp::reply::json(&json!({ "status_code": 200, "message": "Interaction unknown or not recognized", "error": false, "code_error": "HTTP_INTERACTION_UNKNOWN" }).as_object_mut()), warp::http::StatusCode::INTERNAL_SERVER_ERROR)
-                )
+                );
             }
             false => {
                 error!("Signature Error: status_code_returned=401, route=\"/interaction\", method\"POST\"");
-                Ok(
+                return Ok(
                     warp::reply::with_status(warp::reply::json(&json!({ "status_code": 401, "message": "Uh! It appears that this signature or metadata is incorrect. Check it out: https://discord.com/developers/docs/interactions/receiving-and-responding", "error": true, "code": "HTTP_UNAUTHORIZED" }).as_object_mut()), warp::http::StatusCode::UNAUTHORIZED)
-                )
+                );
             }
         }
     }
