@@ -1,54 +1,79 @@
+use crate::routes::websocket::commands::client::ping_client::ping_client;
+use crate::routes::websocket::commands::client::register_client::register_client;
+use crate::routes::websocket::commands::client::register_shard::register_shard;
+use crate::routes::websocket::structures::client::Shard;
+use crate::routes::websocket::websocket_server::convert_to_binary;
+use crate::{Clients, Interaction};
+use jwt::ToBase64;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
+use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::io::Read;
 use std::sync::Arc;
 use std::time::Duration;
-use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
-use warp::ws::{Message};
-use crate::{Clients, Interaction};
-use crate::routes::websocket::websocket_server::{convert_to_binary};
+use tracing::debug;
+use warp::ws::Message;
 
-pub async fn load_commands(data: Value, tx: &UnboundedSender<Message>, _clients: &mut Clients, id: String, interactions: Arc<RwLock<HashMap<String, Interaction>>>) {
+pub async fn load_commands(
+    data: Value,
+    tx: &UnboundedSender<Message>,
+    mut _clients: Clients,
+    id: String,
+    interactions: Arc<RwLock<HashMap<String, Interaction>>>,
+    d: (String, usize, usize, String),
+) {
+    let type_command_is_none = data["type"].as_u64().is_none();
 
-    let type_command_is_none= data["type"].as_u64().is_none();
     if type_command_is_none {
         return;
     }
-    let type_command= data["type"].as_u64().unwrap().to_owned();
 
-    // Hello.
-    if type_command == 0 {
-        if let Err(_disconnected) = tx.send(Message::binary(convert_to_binary(&json!({
-                            "type": 2,
-                            "data": {
-                                 "bits": 1 >> 22,
-                                 "_id": id,
-                                 "compress_data": true
-                            },
-                        })))) {}
-        return;
-    }
+    let type_command = data["type"].as_u64().unwrap().to_owned();
 
-    // Ping
-    if type_command == 89 {
-        if let Err(_disconnected) = tx.send(Message::binary(convert_to_binary(&json!({
-                            "type": 200,
-                            "data": {}
-                        })))) {}
-    }
+    debug!(
+        "Handler Command: id={} type_command={} metadata_ws={} ",
+        id.clone(),
+        type_command,
+        data.to_string()
+    );
 
-    // Return
-    if type_command == 10002 {
-        if data["id"].as_str().is_none() {
-            return;
+    // Register Client
+    match type_command {
+        1 => {
+            register_client(
+                data.clone(),
+                tx,
+                _clients,
+                id.clone(),
+                interactions.clone(),
+                d,
+            )
+            .await;
         }
-        tokio::task::spawn(async move {
-            interactions.write().await.insert(data["id"].to_string(), Interaction {
-                data: data["data"].clone(),
-            });
-            tokio::time::sleep(Duration::from_secs(4)).await; // Remove cache
-            interactions.write().await.remove(&*data["id"].to_string());
-        });
+        2 => {
+            ping_client(
+                data.clone(),
+                tx,
+                _clients.clone(),
+                id.clone(),
+                interactions.clone(),
+            )
+            .await;
+        }
+        3 => {
+            register_shard(
+                data.clone(),
+                tx,
+                _clients.clone(),
+                id.clone(),
+                interactions.clone(),
+            )
+            .await;
+        }
+        4 => {}
+        _ => {}
     }
-
 }

@@ -1,25 +1,24 @@
 extern crate dotenv;
 
+use crate::routes::interaction::interaction_create::interaction_create;
+use crate::routes::websocket::structures::client::{ClientBot, Interaction};
+use crate::routes::websocket::websocket_server::websocket_message;
+use dotenv::dotenv;
+use serde::Serialize;
+use serde_json::json;
 use std::collections::HashMap;
 use std::convert::Infallible;
-use dotenv::dotenv;
-use std::{env};
+use std::env;
 use std::error::Error;
 use std::sync::Arc;
-use serde::{Serialize};
-use serde_json::{json};
-use tracing::{Level};
-use warp::{Filter, Rejection, Reply, hyper::StatusCode};
-use crate::routes::interaction::interaction_create::interaction_create;
-use tokio::sync::{RwLock};
-use warp::ws::{Ws};
-use crate::routes::websocket::websocket_server::{websocket_message};
-use crate::routes::websocket::structures::client::{ClientBot, Interaction};
+use tokio::sync::RwLock;
+use tracing::{error, Level};
+use warp::ws::Ws;
+use warp::{hyper::StatusCode, Filter, Rejection, Reply};
 
-
-mod sign_mod;
 mod cryptography;
 mod routes;
+mod sign_mod;
 
 type Clients = Arc<RwLock<HashMap<String, ClientBot>>>;
 type Interactions = Arc<RwLock<HashMap<String, Interaction>>>;
@@ -29,7 +28,7 @@ struct ErrorMessage {
     code: u16,
     code_error: String,
     message: String,
-    error: bool
+    error: bool,
 }
 
 // HTTP
@@ -41,16 +40,12 @@ const INTERACTION_BUTTON: u64 = 3;
 const INTERACTION_AUTOCOMPLETE: u64 = 4;
 const INTERACTION_MODAL_SUBMIT: u64 = 5;
 
-
 #[tokio::main]
 async fn main() {
-
     dotenv().ok(); // Load env
-    let clients = Clients::default();
-    let interactions = Interactions::default();
-    tracing_subscriber::fmt()
-        .with_max_level(Level::WARN)
-        .init();
+    let mut clients = Clients::default();
+    let mut interactions = Interactions::default();
+    tracing_subscriber::fmt().with_max_level(Level::WARN).init();
 
     let clients = warp::any().map(move || clients.clone());
     let interactions = warp::any().map(move || interactions.clone());
@@ -58,7 +53,7 @@ async fn main() {
 
     let extern_api = warp::path::end().map(|| {
         warp::reply::json(
-            &json!({ "status_code": 404, "message": "Not found!", "error": false }).as_object_mut()
+            &json!({ "status_code": 404, "message": "Not found!", "error": false }).as_object_mut(),
         )
     });
 
@@ -71,29 +66,46 @@ async fn main() {
         .and(clients.clone())
         .and(interactions.clone())
         .and_then(interaction_create);
-    let websocket_support = warp::path("ws_interaction")
+    let websocket_support = warp::path("gateway")
         .and(warp::ws())
-        .and(warp::header::header("Identification-Id"))
+        .and(warp::header::header("Identification"))
         .and(warp::header::header("Secret"))
         .and(warp::header::header("Public-Key"))
         .and(warp::header::header("Shard-In"))
         .and(warp::header::header("Shard-Total"))
         .and(clients.clone())
         .and(interactions.clone())
-        .map(|ws: Ws, id: String, secret: String, pub_key_a: String, shard_in: String, shard_total: String, clients, interactions | {
-            ws.on_upgrade(move |socket| websocket_message(socket, clients, id, secret, shard_in.parse().unwrap(), shard_total.parse().unwrap(),
-                                                          interactions, (pub_key_a, env::var("KEY_SECRET").unwrap(), env::var("PUBLIC_KEY").unwrap(), env::var("BOTS_DISCORD").unwrap())))
-
-        });
-
-
+        .map(
+            |ws: Ws,
+             id: String,
+             secret: String,
+             pub_key_a: String,
+             shard_in: String,
+             shard_total: String,
+             clients,
+             interactions| {
+                ws.on_upgrade(move |socket| {
+                    websocket_message(
+                        socket,
+                        clients,
+                        id,
+                        secret,
+                        shard_in.parse().unwrap(),
+                        shard_total.parse().unwrap(),
+                        interactions,
+                        (
+                            pub_key_a,
+                            env::var("KEY_SECRET").unwrap(),
+                            env::var("PUBLIC_KEY").unwrap(),
+                            env::var("BOTS_DISCORD").unwrap(),
+                        ),
+                    )
+                })
+            },
+        );
 
     let routes = warp::any()
-        .and(
-            extern_api
-                .or(websocket_support)
-                .or(create_interaction)
-        )
+        .and(extern_api.or(websocket_support).or(create_interaction))
         .recover(error_api)
         .with(warp::trace::request());
 
@@ -103,12 +115,11 @@ async fn main() {
 #[derive(Debug)]
 struct Nope;
 
-
 async fn error_api(err: Rejection) -> Result<impl Reply, Infallible> {
     let code;
     let message;
     let code_msg;
-    
+
     if err.is_not_found() {
         message = "Could not find route";
         code = StatusCode::NOT_FOUND;
@@ -141,29 +152,24 @@ async fn error_api(err: Rejection) -> Result<impl Reply, Infallible> {
         };
         code = StatusCode::BAD_REQUEST;
     } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
-
         code = StatusCode::METHOD_NOT_ALLOWED;
         code_msg = "METHOD_NOT_ALLOWED";
         message = "Method for this endpoint is invalid for this action.";
     } else {
-
-        eprintln!("unhandled rejection: {:?}", err);
+        error!("unhandled rejection: {:?}", err);
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = "Your request was rejected and therefore the API was unable to process your request.";
+        message =
+            "Your request was rejected and therefore the API was unable to process your request.";
         code_msg = "UNHANDLED_REJECTION";
     }
 
     Ok(warp::reply::with_status(
         warp::reply::json(&ErrorMessage {
-        code: code.as_u16(),
-        code_error: code_msg.to_string(),
-        message: message.into(),
-        error: true,
-    }), code))
+            code: code.as_u16(),
+            code_error: code_msg.to_string(),
+            message: message.into(),
+            error: true,
+        }),
+        code,
+    ))
 }
-
-
-
-
-
-
