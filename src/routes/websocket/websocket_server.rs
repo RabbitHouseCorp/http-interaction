@@ -8,7 +8,6 @@ use futures::{SinkExt, StreamExt, TryFutureExt};
 use serde_json::{json, Value};
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::{HashMap, HashSet};
-use std::detect::__is_feature_detected::sha;
 use std::io;
 use std::io::prelude::*;
 use std::sync::Arc;
