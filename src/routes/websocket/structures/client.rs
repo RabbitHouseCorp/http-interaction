@@ -7,14 +7,6 @@ use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
 use warp::ws::Message;
-// Flags
-//
-// These flags are saved in the app which can be configured in the websocket.
-
-const FLAG_ENCODE_ZLIB: u64 = 1 << 0; // Compress the data to send to the Client
-const FLAG_DECODE_ZLIB: u64 = 1 << 1; // Decompress the data you receive from the Client
-const FLAG_SEND_BINARY: u64 = 1 << 2; // Sending the data in binary can offer better data transmit/receive speed
-const FLAG_SHARD_MODE: u64 = 1 << 3; // Enable shard mode.
 
 pub type ShardDefault = Arc<RwLock<Vec<Shard>>>;
 pub type ShardsHashDefault = Arc<RwLock<Vec<String>>>;
@@ -71,17 +63,17 @@ impl ClientBot {
     fn update_id(&self) -> &String {
         &self.ws._id
     }
-    #[allow(dead_code)]
-    // fn update_tx(&self) -> &UnboundedSender<Message> { &self.ws.tx }
-    fn shards(&self) -> &HashMap<usize, UnboundedSender<Message>> {
-        &self.ws.shards
-    }
-    fn shard_in(&self) -> &usize {
-        &self.ws.shard_in
-    }
-    fn shard_total(&self) -> &usize {
-        &self.ws.shard_total
-    }
+    //    #[allow(dead_code)]
+    //    fn update_tx(&self) -> &UnboundedSender<Message> { &self.ws.tx }
+    //    fn shards(&self) -> &HashMap<usize, UnboundedSender<Message>> {
+    //        &self.ws.shards
+    //    }
+    //    fn shard_in(&self) -> &usize {
+    //        &self.ws.shard_in
+    //    }
+    //    fn shard_total(&self) -> &usize {
+    //        &self.ws.shard_total
+    //    }
 }
 
 #[derive(Clone)]

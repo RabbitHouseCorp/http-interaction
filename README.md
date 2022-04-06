@@ -2,6 +2,20 @@
 A small code for receiving Discord interactions, prepared for libraries that receive via WebSocket. What's up? curious to work with this cute little code?
 
 
+### Future implementation
+
+- [X] Sharding
+- [ ] Resume Gateway Sharding
+- [ ] CLI (It will be released in 0.2.3 along with tunnel maybe) 
+- [ ] Tunnel
+-     ^  Still choosing the best tunnel for you to code locally.
+- [ ] Redis
+- [ ] MongoDB
+- [ ] Firebase
+-     ^ The implementation of grafana is still a decision. There are no plans as of yet.
+- [ ] Grafana (+ Others support database)
+-      ^ The implementation of grafana is still a decision. There are no plans as of yet.
+- [ ] 
 
 
 ### How to configure API? 

@@ -12,13 +12,14 @@ use std::env;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, Level};
+use tracing::{error, Level, warn};
 use warp::ws::Ws;
-use warp::{hyper::StatusCode, Filter, Rejection, Reply};
+use warp::{hyper::StatusCode, Filter, Rejection, Reply, log};
 
 mod cryptography;
 mod routes;
 mod sign_mod;
+pub mod utils;
 
 type Clients = Arc<RwLock<HashMap<String, ClientBot>>>;
 type Interactions = Arc<RwLock<HashMap<String, Interaction>>>;
@@ -31,14 +32,6 @@ struct ErrorMessage {
     error: bool,
 }
 
-// HTTP
-const INTERACTION_PING: u64 = 1;
-
-// Interaction UI
-const INTERACTION_COMMAND: u64 = 2;
-const INTERACTION_BUTTON: u64 = 3;
-const INTERACTION_AUTOCOMPLETE: u64 = 4;
-const INTERACTION_MODAL_SUBMIT: u64 = 5;
 
 #[tokio::main]
 async fn main() {
@@ -108,8 +101,18 @@ async fn main() {
         .and(extern_api.or(websocket_support).or(create_interaction))
         .recover(error_api)
         .with(warp::trace::request());
-
-    warp::serve(routes).run(([0, 0, 0, 0], 8080)).await;
+    let mut port: u16 = 3030;
+    if !env::var("PORT").is_err() {
+        if !env::var("PORT").unwrap().parse::<usize>().is_err() {
+            port = env::var("PORT").unwrap().parse::<u16>().unwrap()
+        } else {
+            error!("main: err={}", "Port invalid!")
+        }
+    } else {
+        error!("main: err={}", env::var("PORT").err().unwrap())
+    }
+    warn!("API Ready: port_listening={}, version=0.2.2, tunnel=false, tunnel_service=\"unknown\", cli=false", port);
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 }
 
 #[derive(Debug)]

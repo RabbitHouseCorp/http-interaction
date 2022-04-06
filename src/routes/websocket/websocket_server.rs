@@ -1,5 +1,4 @@
 use crate::routes::websocket::commands::handler::load_commands;
-use crate::routes::websocket::structures::client::{Application, ClientWs, Shardings};
 use crate::{ClientBot, Clients, Interaction, Interactions};
 use flate2::read::GzDecoder;
 use flate2::write::ZlibEncoder;
@@ -15,8 +14,10 @@ use std::io::prelude::*;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc::error::SendError;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::log::error;
+use tracing::log::Level::Error;
 use warp;
 use warp::ws::{Message, WebSocket};
 
@@ -64,7 +65,7 @@ pub async fn websocket_message(
         send_message(
             &tx,
             &json!({"type": 0, "possible_error": true, "message": "Excuse me! I'm terminating the connection due to too many shards.", "data": {}, "rate_limit": true}),
-        );
+        ).await;
         if let Err(_) = tx_client.send(Message::close().clone()).await {};
         return;
     }
@@ -153,12 +154,12 @@ pub async fn websocket_message(
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
+                error!("websocket error {}", e);
                 bot_disconnected(
                     clients.clone(),
                     id.clone(),
                     (pub_key.clone(), shard_in, shard_total, secret_key.clone()),
-                );
-                error!("websocket error {}", e);
+                ).await;
                 break;
             }
         };
@@ -194,12 +195,9 @@ async fn bot_disconnected(clients: Clients, id: String, d: (String, usize, usize
     }
 }
 
-pub(crate) fn search_shard(guild_id: usize, shard_size: usize) -> usize {
-    let shard_id = (guild_id >> 22) % shard_size;
-    if shard_id < 0 {
-        return 0;
-    }
-    return shard_id;
+pub(crate) fn search_shard(guild_id: u64, shard_size: usize) -> usize {
+    let shard_id = (guild_id >> 22) % shard_size as u64;
+    return shard_id as usize;
 }
 
 // pub fn encrypt_data_str(inf: String) -> (String, Sha512, Result<SecretKey, SignatureError>) {
@@ -218,6 +216,26 @@ pub(crate) async fn send_message(tx: &UnboundedSender<Message>, x: &Value) {
     if let Err(err) = tx.send(Message::binary(convert_to_binary(x))) {
         error!("websocket error [send]: {}", err);
     }
+}
+
+
+pub(crate) async fn send_message_interaction(tx: &UnboundedSender<Message>, x: (usize, &Value, usize, usize)) -> Result<(), SendError<Message>> {
+    if tx.is_closed() {
+        error!("Connection closed!");
+    }
+    let (type_interaction, metadata, shard_id, shard_total) = x;
+    let data: &Value = &json!({
+        "type": 8,
+        "service": "http_gateway",
+        "event": "INTERACTION_DISCORD",
+        "data": {
+            "shard_id": shard_id,
+            "shard_total": shard_total,
+            "flag": type_interaction,
+            "metadata_http": [metadata]
+        }
+    });
+    tx.send(Message::binary(convert_to_binary(data)))
 }
 
 pub(crate) async fn send_message_with_client(
