@@ -16,6 +16,8 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
 use tracing::debug;
 use warp::ws::Message;
+use crate::routes::websocket::commands::interaction::interaction_return::interaction_return;
+use crate::routes::websocket::messages::utils::{CLIENT_RETURN_METADATA_FOR_API, PING_CLIENT, REGISTER_CLIENT, REGISTER_SHARDING, RESUME_GATEWAY_MASTER, RESUME_SHARD};
 
 pub async fn load_commands(
     data: Value,
@@ -40,9 +42,10 @@ pub async fn load_commands(
         data.to_string()
     );
 
+    
     // Register Client
     match type_command {
-        1 => {
+        REGISTER_CLIENT => {
             register_client(
                 data.clone(),
                 tx,
@@ -53,7 +56,7 @@ pub async fn load_commands(
             )
             .await;
         }
-        2 => {
+        PING_CLIENT => {
             ping_client(
                 data.clone(),
                 tx,
@@ -63,7 +66,7 @@ pub async fn load_commands(
             )
             .await;
         }
-        3 => {
+        REGISTER_SHARDING => {
             register_shard(
                 data.clone(),
                 tx,
@@ -73,7 +76,17 @@ pub async fn load_commands(
             )
             .await;
         }
-        4 => {}
+        CLIENT_RETURN_METADATA_FOR_API => {
+            interaction_return(
+                data.clone(),
+                tx,
+                _clients.clone(),
+                id.clone(),
+                interactions.clone(),
+            ).await;
+        }
+        RESUME_GATEWAY_MASTER => {}
+        RESUME_SHARD => {}
         _ => {}
     }
 }

@@ -11,6 +11,8 @@ use std::collections::{HashMap, HashSet};
 use std::ptr;
 use std::ptr::null;
 use std::sync::Arc;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::RwLock;
 use warp::ws::Message;
@@ -74,6 +76,13 @@ pub async fn register_client(
             flag_count += 1 << flag
         }
     }
+    
+    // Create new hash
+    let hash: String = rand::thread_rng()
+        .sample_iter(Alphanumeric)
+        .take(85)
+        .map(char::from)
+        .collect();
 
     let client = ClientBot {
         ws: ClientWs {
@@ -82,6 +91,7 @@ pub async fn register_client(
             shard_total: shard_total.clone(),
             shards: shards.clone(),
             others: sharding_info,
+            session_id: hash.clone().to_string()
         },
         application_bot: Application {
             public_key: pub_key.clone(),
@@ -125,6 +135,7 @@ pub async fn register_client(
                 "service": "gateway",
                 "data": {
                     "shards_config": [[[[shard_in, shard_total]]]],
+                    "session_id": hash.clone().to_string(),
                     "application_bot": {
                         "public_key": "[REDACTED]",
                         "id": client.application_bot.id.clone(),

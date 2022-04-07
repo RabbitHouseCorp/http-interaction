@@ -56,6 +56,7 @@ pub struct ClientWs {
     pub(crate) others: Shardings,
     pub(crate) shard_in: usize,
     pub(crate) shard_total: usize,
+    pub(crate) session_id: String,
 }
 
 impl ClientBot {
