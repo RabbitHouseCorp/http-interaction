@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 if ! clear &> /dev/null
   then
     echo "";

@@ -19,7 +19,7 @@ use structopt::{StructOpt};
 
 #[derive(Debug, StructOpt)]
 struct Cli {
-    #[structopt(short="f", long="load-env",  about="Load env manually when it's binary command.", default_value=".env" )]
+    #[structopt(short="f", long="load-env", help="Load env manually when it's binary command.", default_value=".env" )]
     env_file: String,
 }
 
