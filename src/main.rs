@@ -15,6 +15,13 @@ use tokio::sync::RwLock;
 use tracing::{error, Level, warn};
 use warp::ws::Ws;
 use warp::{hyper::StatusCode, Filter, Rejection, Reply, log};
+use structopt::{StructOpt};
+
+#[derive(Debug, StructOpt)]
+struct Cli {
+    #[structopt(short="f", long="load-env",  about="Load env manually when it's binary command.", default_value=".env" )]
+    env_file: String,
+}
 
 mod cryptography;
 mod routes;
@@ -35,7 +42,12 @@ struct ErrorMessage {
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok(); // Load env
+    let loadenv = dotenv().ok();
+    if loadenv.is_none() {
+        let cli: Cli = Cli::from_args();
+        dotenv::from_filename(&cli.env_file).ok();
+        warn!("Could not initialize default env, but could set env manually. env={}", &cli.env_file);
+    } // Load env
     let mut clients = Clients::default();
     let mut interactions = Interactions::default();
     tracing_subscriber::fmt().with_max_level(Level::WARN).init();
