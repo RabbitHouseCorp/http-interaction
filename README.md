@@ -5,9 +5,7 @@ A small code for receiving Discord interactions, prepared for libraries that rec
 ### Future implementation
 
 - [X] Sharding
-- [ ] Resume Gateway Sharding
 - [X] CLI (It will be released in 0.2.3 along with tunnel maybe)
-- [ ] Sentry
 
 ### How to configure API? 
 First thing before doing this process we have to check if there are programs installed on your computer or in the environment that is prepared to deploy this API.
