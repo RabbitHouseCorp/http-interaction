@@ -6,21 +6,26 @@ use crate::routes::websocket::websocket_server::websocket_message;
 use dotenv::dotenv;
 use serde::Serialize;
 use serde_json::json;
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::env;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, Level, warn};
+use tracing::{error, Level, Subscriber, warn};
 use warp::ws::Ws;
 use warp::{hyper::StatusCode, Filter, Rejection, Reply, log};
 use structopt::{StructOpt};
+use tracing::instrument::WithSubscriber;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Debug, StructOpt)]
 struct Cli {
     #[structopt(short="f", long="load-env", help="Load env manually when it's binary command.", default_value=".env" )]
     env_file: String,
+    #[structopt(short="-l", long="level_logging", help="Select the best logging configuration. Available [DEBUG, ERROR, INFO, TRACE]", default_value="warn" )]
+    level_logging: String,
 }
 
 mod cryptography;
@@ -43,14 +48,36 @@ struct ErrorMessage {
 #[tokio::main]
 async fn main() {
     let loadenv = dotenv().ok();
+    let cli: Cli = Cli::from_args();
     if loadenv.is_none() {
-        let cli: Cli = Cli::from_args();
         dotenv::from_filename(&cli.env_file).ok();
         warn!("Could not initialize default env, but could set env manually. env={}", &cli.env_file);
-    } // Load env
+    } // Load env;
+
+    let mut level = Level::WARN;
+
+    if cli.level_logging.to_ascii_lowercase() == "debug" {
+        level = Level::DEBUG;
+    }
+
+    if cli.level_logging.to_ascii_lowercase() == "error" {
+        level = Level::ERROR;
+    }
+
+    if cli.level_logging.to_ascii_lowercase() == "info" {
+        level = Level::INFO;
+    }
+
+    if cli.level_logging.to_ascii_lowercase() == "trace" {
+        level = Level::TRACE;
+    }
+
+    // Logging
+    tracing_subscriber::fmt().with_max_level(level).init();
+
     let mut clients = Clients::default();
     let mut interactions = Interactions::default();
-    tracing_subscriber::fmt().with_max_level(Level::WARN).init();
+
 
     let clients = warp::any().map(move || clients.clone());
     let interactions = warp::any().map(move || interactions.clone());

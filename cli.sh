@@ -11,16 +11,18 @@ if ! cargo check &> /dev/null
    echo "😖 There was a problem running \"cargo check\""
    exit;
  fi
- echo "👍 Ok [1/4]"
+ echo "👍 Ok [1/3]"
 
 echo "[2/3] ⚡ Building API..."
+echo " -  Warning: This API can sometimes take a while to build and of course it depends on the amount of processing."
+echo ""
 
 if ! cargo build -q &> /dev/null
  then
    echo "😖 There was a problem running \"cargo run\""
    exit
  fi
-  echo "👍 Ok [2/4]"
+  echo "👍 Ok [2/3]"
 echo "[3/3] 💻 Preparing command..."
 if ! sudo rm -rf /usr/bin/httpinteraction  &> /dev/null
  then
@@ -35,6 +37,6 @@ if ! sudo mv ./target/debug/httpinteraction /usr/bin  &> /dev/null
    exit
  fi
    echo "..."
- echo "👍 Ok [2/4]"
+ echo "👍 Ok [3/3]"
   echo ""
 
