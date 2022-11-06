@@ -3,12 +3,11 @@ name = "httpinteraction"
 description = "An API that interacts with the Discord API and receives interactions through it."
 authors = ["RabbitHouseCorp"]
 homepage = "https://github.com/RabbitHouseCorp"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
-rust-version = "1.59"
 license = "Apache-2.0"
 categories = ["discord-api", "discord-interaction", "discord-rust", "discord", "rust", "cargo", "rust-lang"]
-keywords = ["api-gateway", "discord", "websocket", "discordapp", "discord-api", "rust-lang", "api-rest", "discord-interaction", "discord-interaction-url", "discord-rust"]
+keywords = ["discord-interaction", "rust"]
 [dependencies]
 quicli = "0.4.0"
 structopt = "0.3.26"
