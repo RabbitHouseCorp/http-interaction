@@ -23,7 +23,7 @@ jwt = "0.16.0"
 tokio-core = "0.1.18"
 async-stream = "0.3.2"
 bytes = "1.1.0"
-mio = "0.8.0"
+mio = "1.0.2"
 warp = { version = "0.3.2", features = ["compression", "compression-brotli", "default"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_derive = "1.0.136"
